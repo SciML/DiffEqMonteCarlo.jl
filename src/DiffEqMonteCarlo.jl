@@ -39,12 +39,11 @@ function calculate_sim_errors(sim::MonteCarloSimulation)
   return MonteCarloTestSimulation(solutions,errors,error_means,error_medians,sim.elapsedTime)
 end
 
-function monte_carlo_simulation(prob::DEProblem,alg,u0_func=identity;numMonte=10000,save_timeseries=false,kwargs...)
+function monte_carlo_simulation(prob::DEProblem,alg,u0_func=identity;num_monte=10000,save_timeseries=false,kwargs...)
   elapsedTime = @elapsed solutions = pmap((i)-> begin
-    new_prob = deepcopy(prob)
-    new_prob.u0 = u0_func(prob.u0)
+    new_prob = prob_func(deepcopy(prob))
     solve(new_prob,alg;save_timeseries=save_timeseries,kwargs...)
-  end,1:numMonte)
+  end,1:num_monte)
   solutions = convert(Array{typeof(solutions[1])},solutions)
   return(MonteCarloSimulation(solutions,elapsedTime))
 end
