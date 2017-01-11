@@ -18,4 +18,4 @@ prob_func = function (prob)
   prob.u0 = rand()*prob.u0
   prob
 end
-sim = monte_carlo_simulation(prob,Tsit5(),prob_func,num_monte=100,save_timeseries=true)
+sim = monte_carlo_simulation(prob,Tsit5(),prob_func,num_monte=100)
