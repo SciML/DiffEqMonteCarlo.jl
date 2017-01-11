@@ -39,7 +39,7 @@ function calculate_sim_errors(sim::MonteCarloSimulation)
   return MonteCarloTestSimulation(solutions,errors,error_means,error_medians,sim.elapsedTime)
 end
 
-function monte_carlo_simulation(prob::DEProblem,alg,u0_func=identity;num_monte=10000,save_timeseries=false,kwargs...)
+function monte_carlo_simulation(prob::DEProblem,alg,prob_func=identity;num_monte=10000,save_timeseries=false,kwargs...)
   elapsedTime = @elapsed solutions = pmap((i)-> begin
     new_prob = prob_func(deepcopy(prob))
     solve(new_prob,alg;save_timeseries=save_timeseries,kwargs...)
@@ -52,9 +52,22 @@ Base.length(sim::AbstractMonteCarloSimulation) = length(sim.solutions)
 Base.endof( sim::AbstractMonteCarloSimulation) = length(sim)
 Base.getindex(sim::AbstractMonteCarloSimulation,i::Int) = sim.solutions[i]
 Base.getindex(sim::AbstractMonteCarloSimulation,i::Int,I::Int...) = sim.solutions[i][I...]
+Base.size(sim::AbstractMonteCarloSimulation) = (length(sim),)
+Base.start(sim::AbstractMonteCarloSimulation) = 1
+function Base.next(sim::AbstractMonteCarloSimulation,state)
+  state += 1
+  (sim[state],state)
+end
+Base.done(sim::AbstractMonteCarloSimulation,state) = state >= length(sim)
 
 @recipe function f(sim::AbstractMonteCarloSimulation)
-   Any[sim[i] for i in 1:length(sim)]
+
+  for sol in sim
+    @series begin
+      legend := false
+      sol
+    end
+  end
 end
 
 export monte_carlo_simulation, calculate_sim_errors
