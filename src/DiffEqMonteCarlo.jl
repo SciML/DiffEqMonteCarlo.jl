@@ -42,7 +42,7 @@ end
 function monte_carlo_simulation(prob::DEProblem,alg,prob_func=identity;num_monte=10000,kwargs...)
   elapsedTime = @elapsed solutions = pmap((i)-> begin
     new_prob = prob_func(deepcopy(prob))
-    solve(new_prob,alg;save_timeseries=save_timeseries,kwargs...)
+    solve(new_prob,alg;kwargs...)
   end,1:num_monte)
   solutions = convert(Array{typeof(solutions[1])},solutions)
   return(MonteCarloSimulation(solutions,elapsedTime))
