@@ -72,4 +72,6 @@ end
 
 export monte_carlo_simulation, calculate_sim_errors
 
+export MonteCarloSimulation, MonteCarloTestSimulation
+
 end # module
