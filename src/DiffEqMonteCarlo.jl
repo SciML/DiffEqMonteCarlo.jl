@@ -11,11 +11,6 @@ type MonteCarloTestSimulation{S,T} <: AbstractMonteCarloSimulation
 end
 
 type MonteCarloSimulation{T} <: AbstractMonteCarloSimulation
-  solutions::Vector{T}
-  elapsedTime::Float64
-end
-
-type ReductionMonteCarloSimulation{T} <: AbstractMonteCarloSimulation
   solution_data::Vector{T}
   elapsedTime::Float64
 end
@@ -44,26 +39,14 @@ function calculate_sim_errors(sim::MonteCarloSimulation)
   return MonteCarloTestSimulation(solutions,errors,error_means,error_medians,sim.elapsedTime)
 end
 
-
-
-function monte_carlo_simulation(prob::DEProblem,alg,output_func;prob_func=identity,num_monte=10000,kwargs...)
+function monte_carlo_simulation(prob::DEProblem,alg;output_func = identity,prob_func=identity,num_monte=10000,kwargs...)
   elapsedTime = @elapsed solutions = pmap((i)-> begin
     new_prob = prob_func(deepcopy(prob))
-    sol = solve(new_prob,alg;kwargs...)
-    output_func(last(sol))
-  end,1:num_monte)
-  return(ReductionMonteCarloSimulation(solutions,elapsedTime))
-end
-
-function monte_carlo_simulation(prob::DEProblem,alg;prob_func=identity,num_monte=10000,kwargs...)
-  elapsedTime = @elapsed solutions = pmap((i)-> begin
-    new_prob = prob_func(deepcopy(prob))
-    solve(new_prob,alg;kwargs...)
+    output_func(solve(new_prob,alg;kwargs...))
   end,1:num_monte)
   solutions = convert(Array{typeof(solutions[1])},solutions)
   return(MonteCarloSimulation(solutions,elapsedTime))
 end
-
 
 Base.length(sim::AbstractMonteCarloSimulation) = length(sim.solutions)
 Base.endof( sim::AbstractMonteCarloSimulation) = length(sim)
@@ -89,6 +72,6 @@ end
 
 export monte_carlo_simulation, calculate_sim_errors
 
-export MonteCarloSimulation, MonteCarloTestSimulation,ReductionMonteCarloSimulation
+export MonteCarloSimulation, MonteCarloTestSimulation
 
 end # module
