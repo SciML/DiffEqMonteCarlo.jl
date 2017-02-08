@@ -11,10 +11,9 @@ sim = monte_carlo_simulation(prob,SRA1(),dt=1//2^(3),num_monte=10)
 calculate_sim_errors(sim)
 
 output_func = function (x)
-  last(x)^2
+  last(last(x))^2
 end
 sim = monte_carlo_simulation(prob,SRA1(),output_func=output_func,dt=1//2^(3),num_monte=10)
-calculate_sim_errors(sim)
 
 prob = prob_sde_lorenz
 sim = monte_carlo_simulation(prob,SRIW1(),dt=1//2^(3),num_monte=10)
