@@ -3,7 +3,7 @@ module DiffEqMonteCarlo
 using DiffEqBase, RecipesBase
 
 type MonteCarloTestSimulation{S,T} <: AbstractMonteCarloSimulation
-  solutions::S
+  solution_data::S
   errors::Dict{Symbol,Vector{T}}
   error_means::Dict{Symbol,T}
   error_medians::Dict{Symbol,T}
@@ -11,7 +11,7 @@ type MonteCarloTestSimulation{S,T} <: AbstractMonteCarloSimulation
 end
 
 type MonteCarloSimulation{T} <: AbstractMonteCarloSimulation
-  solutions::Vector{T}
+  solution_data::Vector{T}
   elapsedTime::Float64
 end
 
@@ -27,31 +27,31 @@ Returns a vector of solution objects.
 * `kwargs...` - These are common solver arguments which are then passed to the solve method
 """
 function calculate_sim_errors(sim::MonteCarloSimulation)
-  solutions = sim.solutions
-  errors = Dict{Symbol,Vector{eltype(solutions[1].u[1])}}() #Should add type information
-  error_means  = Dict{Symbol,eltype(solutions[1].u[1])}()
-  error_medians= Dict{Symbol,eltype(solutions[1].u[1])}()
-  for k in keys(solutions[1].errors)
-    errors[k] = [sol.errors[k] for sol in solutions]
+  solution_data = sim.solution_data
+  errors = Dict{Symbol,Vector{eltype(solution_data[1].u[1])}}() #Should add type information
+  error_means  = Dict{Symbol,eltype(solution_data[1].u[1])}()
+  error_medians= Dict{Symbol,eltype(solution_data[1].u[1])}()
+  for k in keys(solution_data[1].errors)
+    errors[k] = [sol.errors[k] for sol in solution_data]
     error_means[k] = mean(errors[k])
     error_medians[k]=median(errors[k])
   end
-  return MonteCarloTestSimulation(solutions,errors,error_means,error_medians,sim.elapsedTime)
+  return MonteCarloTestSimulation(solution_data,errors,error_means,error_medians,sim.elapsedTime)
 end
 
-function monte_carlo_simulation(prob::DEProblem,alg,prob_func=identity;num_monte=10000,kwargs...)
-  elapsedTime = @elapsed solutions = pmap((i)-> begin
+function monte_carlo_simulation(prob::DEProblem,alg;output_func = identity,prob_func=identity,num_monte=10000,kwargs...)
+  elapsedTime = @elapsed solution_data = pmap((i)-> begin
     new_prob = prob_func(deepcopy(prob))
-    solve(new_prob,alg;kwargs...)
+    output_func(solve(new_prob,alg;kwargs...))
   end,1:num_monte)
-  solutions = convert(Array{typeof(solutions[1])},solutions)
-  return(MonteCarloSimulation(solutions,elapsedTime))
+  solution_data = convert(Array{typeof(solution_data[1])},solution_data)
+  return(MonteCarloSimulation(solution_data,elapsedTime))
 end
 
-Base.length(sim::AbstractMonteCarloSimulation) = length(sim.solutions)
+Base.length(sim::AbstractMonteCarloSimulation) = length(sim.solution_data)
 Base.endof( sim::AbstractMonteCarloSimulation) = length(sim)
-Base.getindex(sim::AbstractMonteCarloSimulation,i::Int) = sim.solutions[i]
-Base.getindex(sim::AbstractMonteCarloSimulation,i::Int,I::Int...) = sim.solutions[i][I...]
+Base.getindex(sim::AbstractMonteCarloSimulation,i::Int) = sim.solution_data[i]
+Base.getindex(sim::AbstractMonteCarloSimulation,i::Int,I::Int...) = sim.solution_data[i][I...]
 Base.size(sim::AbstractMonteCarloSimulation) = (length(sim),)
 Base.start(sim::AbstractMonteCarloSimulation) = 1
 function Base.next(sim::AbstractMonteCarloSimulation,state)
