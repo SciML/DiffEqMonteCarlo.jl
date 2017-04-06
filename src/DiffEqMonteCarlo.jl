@@ -41,7 +41,7 @@ function calculate_sim_errors(sim::MonteCarloSimulation)
   return MonteCarloTestSimulation(solution_data,errors,error_means,error_medians,sim.elapsedTime)
 end
 
-function monte_carlo_simulation(prob::DEProblem,alg;output_func = identity,prob_func=identity,num_monte=10000,kwargs...)
+function monte_carlo_simulation(prob::DEProblem,alg;output_func = identity,prob_func= (prob,i)->prob,num_monte=10000,kwargs...)
   elapsedTime = @elapsed solution_data = pmap((i)-> begin
     new_prob = prob_func(deepcopy(prob),i)
     output_func(solve(new_prob,alg;kwargs...))
