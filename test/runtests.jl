@@ -19,7 +19,7 @@ prob = prob_sde_lorenz
 sim = monte_carlo_simulation(prob,SRIW1(),dt=1//2^(3),num_monte=10)
 
 prob = prob_ode_linear
-prob_func = function (prob)
+prob_func = function (prob,i)
   prob.u0 = rand()*prob.u0
   prob
 end
