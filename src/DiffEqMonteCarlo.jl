@@ -6,7 +6,7 @@ using DiffEqBase
 
 import DiffEqBase: solve
 
-function solve(prob::AbstractMonteCarloProblem,alg;num_monte=10000,kwargs...)
+function solve(prob::AbstractMonteCarloProblem,alg::DEAlgorithm;num_monte=10000,kwargs...)
   elapsedTime = @elapsed solution_data = pmap((i)-> begin
     new_prob = prob.prob_func(deepcopy(prob.prob),i)
     prob.output_func(solve(new_prob,alg;kwargs...))
