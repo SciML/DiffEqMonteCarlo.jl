@@ -23,10 +23,14 @@ function solve(prob::AbstractMonteCarloProblem,alg::DEAlgorithm;num_monte=10000,
 
   elseif parallel_type == :threads
     solution_data = Vector{Any}()
+    for i in 1:Threads.nthreads()
+      push!(solution_data,[])
+    end
     elapsedTime = @elapsed Threads.@threads for i in 1:num_monte
       new_prob = prob.prob_func(deepcopy(prob.prob),i)
-      push!(solution_data,prob.output_func(solve(new_prob,alg;kwargs...),i))
+      push!(solution_data[Threads.threadid()],prob.output_func(solve(new_prob,alg;kwargs...),i))
     end
+    solution_data = vcat(solution_data...)
     solution_data = convert(Array{typeof(solution_data[1])},solution_data)
 
   elseif parallel_type == :split_threads
@@ -55,10 +59,14 @@ end
 
 function thread_monte(prob,num_monte,alg,procid,kwargs...)
   solution_data = Vector{Any}()
+  for i in 1:Threads.nthreads()
+    push!(solution_data,[])
+  end
   elapsedTime = @elapsed Threads.@threads for i in ((procid-1)*num_monte+1):(procid*num_monte)
     new_prob = prob.prob_func(deepcopy(prob.prob),i)
-    push!(solution_data,prob.output_func(solve(new_prob,alg;kwargs...),i))
+    push!(solution_data[Threads.threadid()],prob.output_func(solve(new_prob,alg;kwargs...),i))
   end
+  solution_data = vcat(solution_data...)
   solution_data = convert(Array{typeof(solution_data[1])},solution_data)
 end
 
