@@ -7,6 +7,11 @@ prob = prob_sde_2Dlinear
 prob2 = MonteCarloProblem(prob)
 sim = solve(prob2,SRIW1(),dt=1//2^(3),num_monte=10)
 calculate_monte_errors(sim)
+length(sim) == 10
+
+sim = solve(prob2,SRIW1(),dt=1//2^(3),num_monte=10,parallel_type=:threads)
+calculate_monte_errors(sim)
+length(sim) == 10
 
 prob = prob_sde_additivesystem
 prob2 = MonteCarloProblem(prob)

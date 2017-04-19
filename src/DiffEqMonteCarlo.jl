@@ -30,7 +30,7 @@ function solve(prob::AbstractMonteCarloProblem,alg::DEAlgorithm;num_monte=10000,
     solution_data = convert(Array{typeof(solution_data[1])},solution_data)
 
   elseif parallel_type == :split_threads
-    elapsedTime = @elapsed solution_data = @parallel (vcat) for procid in 1:nprocs()
+    elapsedTime = @elapsed solution_data = @sync @parallel (vcat) for procid in 1:nprocs()
       _num_monte = num_monte÷nprocs() # probably can be made more even?
       if procid == nprocs()
         _num_monte = num_monte-_num_monte*(nprocs()-1)
