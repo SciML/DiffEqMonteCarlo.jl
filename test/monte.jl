@@ -18,8 +18,8 @@ prob2 = MonteCarloProblem(prob)
 sim = solve(prob2,SRA1(),dt=1//2^(3),num_monte=10)
 calculate_monte_errors(sim)
 
-output_func = function (x)
-  last(last(x))^2
+output_func = function (sol,i)
+  last(last(sol))^2
 end
 prob2 = MonteCarloProblem(prob,output_func=output_func)
 sim = solve(prob2,SRA1(),dt=1//2^(3),num_monte=10)
