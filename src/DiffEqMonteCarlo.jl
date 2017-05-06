@@ -6,7 +6,7 @@ using DiffEqBase
 
 import DiffEqBase: solve
 
-function solve(prob::AbstractMonteCarloProblem,alg::DEAlgorithm;num_monte=10000,parallel_type=:pmap,kwargs...)
+function solve(prob::AbstractMonteCarloProblem,alg::Union{DEAlgorithm,Void}=nothing;num_monte=10000,parallel_type=:pmap,kwargs...)
 
   if parallel_type == :pmap
     elapsedTime = @elapsed solution_data = pmap((i)-> begin
@@ -54,7 +54,7 @@ function solve(prob::AbstractMonteCarloProblem,alg::DEAlgorithm;num_monte=10000,
     error("Method $parallel_type is not a valid parallelism method.")
   end
 
-  return(MonteCarloSolution(solution_data,elapsedTime))
+  MonteCarloSolution(solution_data,elapsedTime)
 end
 
 function thread_monte(prob,num_monte,alg,procid,kwargs...)
