@@ -2,72 +2,27 @@ __precompile__()
 
 module DiffEqMonteCarlo
 
-using DiffEqBase
+using DiffEqBase, RecursiveArrayTools
 
 import DiffEqBase: solve
 
-function solve(prob::AbstractMonteCarloProblem,alg::Union{DEAlgorithm,Void}=nothing;num_monte=10000,parallel_type=:pmap,kwargs...)
+include("solve.jl")
+include("analysis.jl")
 
-  if parallel_type == :pmap
-    elapsedTime = @elapsed solution_data = pmap((i)-> begin
-      new_prob = prob.prob_func(deepcopy(prob.prob),i)
-      prob.output_func(solve(new_prob,alg;kwargs...),i)
-    end,1:num_monte)
-    solution_data = convert(Array{typeof(solution_data[1])},solution_data)
+export get_timestep, get_timepoint, apply_timestep, apply_timepoint
 
-  elseif parallel_type == :parfor
-    elapsedTime = @elapsed solution_data = @sync @parallel (vcat) for i in 1:num_monte
-      new_prob = prob.prob_func(deepcopy(prob.prob),i)
-      prob.output_func(solve(new_prob,alg;kwargs...),i)
-    end
+export componentwise_mean, componentwise_meanvar
 
-  elseif parallel_type == :threads
-    solution_data = Vector{Any}()
-    for i in 1:Threads.nthreads()
-      push!(solution_data,[])
-    end
-    elapsedTime = @elapsed Threads.@threads for i in 1:num_monte
-      new_prob = prob.prob_func(deepcopy(prob.prob),i)
-      push!(solution_data[Threads.threadid()],prob.output_func(solve(new_prob,alg;kwargs...),i))
-    end
-    solution_data = vcat(solution_data...)
-    solution_data = convert(Array{typeof(solution_data[1])},solution_data)
+export timestep_mean, timestep_meanvar, timestep_meancov,
+       timestep_meancor, timestep_weighted_meancov
 
-  elseif parallel_type == :split_threads
-    elapsedTime = @elapsed solution_data = @sync @parallel (vcat) for procid in 1:nprocs()
-      _num_monte = num_monte÷nprocs() # probably can be made more even?
-      if procid == nprocs()
-        _num_monte = num_monte-_num_monte*(nprocs()-1)
-      end
-      thread_monte(prob,num_monte,alg,procid,kwargs...)
-    end
+export timeseries_steps_mean, timeseries_steps_meanvar, timeseries_steps_meancov,
+       timeseries_steps_meancor, timeseries_steps_weighted_meancov
 
-  elseif parallel_type == :none
-    solution_data = Vector{Any}()
-    elapsedTime = @elapsed for i in 1:num_monte
-      new_prob = prob.prob_func(deepcopy(prob.prob),i)
-      push!(solution_data,prob.output_func(solve(new_prob,alg;kwargs...),i))
-    end
-    solution_data = convert(Array{typeof(solution_data[1])},solution_data)
+export timepoint_mean, timepoint_meanvar, timepoint_meancov,
+       timepoint_meancor, timepoint_weighted_meancov
 
-  else
-    error("Method $parallel_type is not a valid parallelism method.")
-  end
-
-  MonteCarloSolution(solution_data,elapsedTime)
-end
-
-function thread_monte(prob,num_monte,alg,procid,kwargs...)
-  solution_data = Vector{Any}()
-  for i in 1:Threads.nthreads()
-    push!(solution_data,[])
-  end
-  elapsedTime = @elapsed Threads.@threads for i in ((procid-1)*num_monte+1):(procid*num_monte)
-    new_prob = prob.prob_func(deepcopy(prob.prob),i)
-    push!(solution_data[Threads.threadid()],prob.output_func(solve(new_prob,alg;kwargs...),i))
-  end
-  solution_data = vcat(solution_data...)
-  solution_data = convert(Array{typeof(solution_data[1])},solution_data)
-end
+export timeseries_point_mean, timeseries_point_meanvar, timeseries_point_meancov,
+       timeseries_point_meancor, timeseries_point_weighted_meancov
 
 end # module
