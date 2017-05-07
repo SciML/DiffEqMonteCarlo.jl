@@ -4,7 +4,7 @@ module DiffEqMonteCarlo
 
 using DiffEqBase, RecursiveArrayTools
 
-import DiffEqBase: solve
+import DiffEqBase: solve, MonteCarloSummary
 
 include("solve.jl")
 include("analysis.jl")

@@ -14,8 +14,10 @@ m3,m4,c = timestep_meancov(sim,3,3)
 @test v ≈ c
 m3,m4,c = timestep_meancor(sim,3,3)
 @test c ≈ ones(c)
-timeseries_steps_mean(sim)
+vecarr = timeseries_steps_mean(sim)
 m_series,v_series = timeseries_steps_meanvar(sim)
+summ = MonteCarloSummary(sim)
+
 m4,v4 = m_series[3],v_series[3]
 covar_mat = timeseries_steps_meancov(sim)[3,3]
 @test m ≈ m4
@@ -37,7 +39,9 @@ m3,m4,c = timepoint_meancov(sim,0.5,0.5)
 @test v ≈ c
 m3,m4,c = timepoint_meancor(sim,0.5,0.5)
 @test c ≈ ones(c)
+m_series = timeseries_point_mean(sim,0:1//2^(3):1)
 m_series,v_series = timeseries_point_meanvar(sim,0:1//2^(3):1)
+summ = MonteCarloSummary(sim,0:1//2^(3):1)
 m5,v5 = m_series[5],v_series[5]
 @test m ≈ m5
 @test v ≈ v5

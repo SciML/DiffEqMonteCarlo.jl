@@ -14,8 +14,14 @@ timestep_meancor(sim,::Colon,::Colon) = timeseries_steps_meancor(sim)
 timestep_weighted_meancov(sim,W,i,j) = componentwise_weighted_meancov(get_timestep(sim,i),get_timestep(sim,j),W)
 timestep_weighted_meancov(sim,W,::Colon,::Colon) = timeseries_steps_weighted_meancov(sim,W)
 
+function MonteCarloSummary{T,N}(sim::AbstractMonteCarloSolution{T,N})
+  t = sim[1].t
+  m,v = timeseries_steps_meanvar(sim)
+  MonteCarloSummary{T,N,typeof(t),typeof(m),typeof(v)}(t,m,v,sim.elapsedTime)
+end
+
 function timeseries_steps_mean(sim)
-  VectorOfArray([timestep_mean(sim,i) for i in 1:length(sim[1])])
+  DiffEqArray([timestep_mean(sim,i) for i in 1:length(sim[1])],sim[1].t)
 end
 function timeseries_steps_meanvar(sim)
   means = typeof(sim[1][1])[]
@@ -25,7 +31,7 @@ function timeseries_steps_meanvar(sim)
     push!(means,m)
     push!(vars,v)
   end
-  VectorOfArray(means),VectorOfArray(vars)
+  DiffEqArray(means,sim[1].t),DiffEqArray(vars,sim[1].t)
 end
 function timeseries_steps_meancov(sim)
   reshape([timestep_meancov(sim,i,j) for i in 1:length(sim[1]) for j in 1:length(sim[1])],length(sim[1]),length(sim[1]))
@@ -43,8 +49,13 @@ timepoint_meancov(sim,t1,t2) = componentwise_meancov(get_timepoint(sim,t1),get_t
 timepoint_meancor(sim,t1,t2) = componentwise_meancor(get_timepoint(sim,t1),get_timepoint(sim,t2))
 timepoint_weighted_meancov(sim,W,t1,t2) = componentwise_weighted_meancov(get_timepoint(sim,t1),get_timepoint(sim,t2),W)
 
+function MonteCarloSummary{T,N}(sim::AbstractMonteCarloSolution{T,N},t)
+  m,v = timeseries_point_meanvar(sim,t)
+  MonteCarloSummary{T,N,typeof(t),typeof(m),typeof(v)}(t,m,v,sim.elapsedTime)
+end
+
 function timeseries_point_mean(sim,ts)
-  VectorOfArray([timepoint_mean(sim,t) for t in ts])
+  DiffEqArray([timepoint_mean(sim,t) for t in ts],ts)
 end
 function timeseries_point_meanvar(sim,ts)
   means = typeof(sim[1][1])[]
@@ -54,7 +65,7 @@ function timeseries_point_meanvar(sim,ts)
     push!(means,m)
     push!(vars,v)
   end
-  VectorOfArray(means),VectorOfArray(vars)
+  DiffEqArray(means,ts),DiffEqArray(vars,ts)
 end
 function timeseries_point_meancov(sim,ts1,ts2)
   reshape([timepoint_meancov(sim,t1,t2) for t1 in ts1 for t2 in ts2],length(ts1),length(ts2))
