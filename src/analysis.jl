@@ -1,10 +1,16 @@
+# Getters
 get_timestep(sim,i) = (getindex(sol,i) for sol in sim)
 get_timepoint(sim,t) = (sol(t) for sol in sim)
-apply_timestep(f,sim,i) = f(get_timestep(sim,i))
-apply_timepoint(f,sim,t) = f(get_timepoint(sim,t))
+componentwise_vectors_timestep(sim,i) = vecarr_to_vectors(VectorOfArray([get_timestep(sim,i)...]))
+componentwise_vectors_timepoint(sim,t) = vecarr_to_vectors(VectorOfArray([get_timepoint(sim,t)...]))
 
+# Timestep statistics
 timestep_mean(sim,i) = componentwise_mean(get_timestep(sim,i))
 timestep_mean(sim,::Colon) = timeseries_steps_mean(sim)
+timestep_median(sim,i) = reshape([median(x) for x in componentwise_vectors_timestep(sim,i)],size(sim[1][i])...)
+timestep_median(sim,::Colon) = timeseries_steps_median(sim)
+timestep_quantile(sim,q,i) = reshape([quantile(x,q) for x in componentwise_vectors_timestep(sim,i)],size(sim[1][i])...)
+timestep_quantile(sim,q,::Colon) = timeseries_steps_quantile(sim,q)
 timestep_meanvar(sim,i) = componentwise_meanvar(get_timestep(sim,i))
 timestep_meanvar(sim,::Colon) = timeseries_steps_meanvar(sim)
 timestep_meancov(sim,i,j) = componentwise_meancov(get_timestep(sim,i),get_timestep(sim,j))
@@ -22,6 +28,12 @@ end
 
 function timeseries_steps_mean(sim)
   DiffEqArray([timestep_mean(sim,i) for i in 1:length(sim[1])],sim[1].t)
+end
+function timeseries_steps_median(sim)
+  DiffEqArray([timestep_median(sim,i) for i in 1:length(sim[1])],sim[1].t)
+end
+function timeseries_steps_quantile(sim,q)
+  DiffEqArray([timestep_quantile(sim,q,i) for i in 1:length(sim[1])],sim[1].t)
 end
 function timeseries_steps_meanvar(sim)
   means = typeof(sim[1][1])[]
@@ -44,6 +56,8 @@ function timeseries_steps_weighted_meancov(sim,W)
 end
 
 timepoint_mean(sim,t) = componentwise_mean(get_timepoint(sim,t))
+timepoint_median(sim,t) = reshape([median(x) for x in componentwise_vectors_timepoint(sim,t)],size(sim[1][1])...)
+timepoint_quantile(sim,q,t) = reshape([quantile(x,q) for x in componentwise_vectors_timepoint(sim,t)],size(sim[1][1])...)
 timepoint_meanvar(sim,t) = componentwise_meanvar(get_timepoint(sim,t))
 timepoint_meancov(sim,t1,t2) = componentwise_meancov(get_timepoint(sim,t1),get_timepoint(sim,t2))
 timepoint_meancor(sim,t1,t2) = componentwise_meancor(get_timepoint(sim,t1),get_timepoint(sim,t2))
@@ -56,6 +70,12 @@ end
 
 function timeseries_point_mean(sim,ts)
   DiffEqArray([timepoint_mean(sim,t) for t in ts],ts)
+end
+function timeseries_point_median(sim,ts)
+  DiffEqArray([timepoint_median(sim,t) for t in ts],ts)
+end
+function timeseries_point_quantile(sim,q,ts)
+  DiffEqArray([timepoint_quantile(sim,q,t) for t in ts],ts)
 end
 function timeseries_point_meanvar(sim,ts)
   means = typeof(sim[1][1])[]
