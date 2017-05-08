@@ -1,15 +1,43 @@
 # Getters
 get_timestep(sim,i) = (getindex(sol,i) for sol in sim)
 get_timepoint(sim,t) = (sol(t) for sol in sim)
-componentwise_vectors_timestep(sim,i) = vecarr_to_vectors(VectorOfArray([get_timestep(sim,i)...]))
-componentwise_vectors_timepoint(sim,t) = vecarr_to_vectors(VectorOfArray([get_timepoint(sim,t)...]))
+function componentwise_vectors_timestep(sim,i)
+  arr = [get_timestep(sim,i)...]
+  if typeof(arr[1]) <: AbstractArray
+   return vecarr_to_vectors(VectorOfArray(arr))
+  else
+   return arr
+  end
+ end
+ function componentwise_vectors_timepoint(sim,t)
+   arr = [get_timepoint(sim,t)...]
+   if typeof(arr[1]) <: AbstractArray
+    return vecarr_to_vectors(VectorOfArray(arr))
+   else
+    return arr
+   end
+  end
 
 # Timestep statistics
 timestep_mean(sim,i) = componentwise_mean(get_timestep(sim,i))
 timestep_mean(sim,::Colon) = timeseries_steps_mean(sim)
-timestep_median(sim,i) = reshape([median(x) for x in componentwise_vectors_timestep(sim,i)],size(sim[1][i])...)
+function timestep_median(sim,i)
+  arr = componentwise_vectors_timestep(sim,i)
+  if typeof(first(arr)) <: AbstractArray
+    return reshape([median(x) for x in arr],size(sim[1][i])...)
+  else
+    return median(arr)
+  end
+end
 timestep_median(sim,::Colon) = timeseries_steps_median(sim)
-timestep_quantile(sim,q,i) = reshape([quantile(x,q) for x in componentwise_vectors_timestep(sim,i)],size(sim[1][i])...)
+function timestep_quantile(sim,q,i)
+  arr = componentwise_vectors_timestep(sim,i)
+  if typeof(first(arr)) <: AbstractArray
+    return reshape([quantile(x,q) for x in arr],size(sim[1][i])...)
+  else
+    return quantile(arr,q)
+  end
+end
 timestep_quantile(sim,q,::Colon) = timeseries_steps_quantile(sim,q)
 timestep_meanvar(sim,i) = componentwise_meanvar(get_timestep(sim,i))
 timestep_meanvar(sim,::Colon) = timeseries_steps_meanvar(sim)
@@ -56,8 +84,22 @@ function timeseries_steps_weighted_meancov(sim,W)
 end
 
 timepoint_mean(sim,t) = componentwise_mean(get_timepoint(sim,t))
-timepoint_median(sim,t) = reshape([median(x) for x in componentwise_vectors_timepoint(sim,t)],size(sim[1][1])...)
-timepoint_quantile(sim,q,t) = reshape([quantile(x,q) for x in componentwise_vectors_timepoint(sim,t)],size(sim[1][1])...)
+function timepoint_median(sim,t)
+  arr = componentwise_vectors_timepoint(sim,t)
+  if typeof(first(arr)) <: AbstractArray
+    return reshape([median(x) for x in arr],size(sim[1][1])...)
+  else
+    return median(arr)
+  end
+end
+function timepoint_quantile(sim,q,t)
+  arr = componentwise_vectors_timepoint(sim,t)
+  if typeof(first(arr)) <: AbstractArray
+    return reshape([quantile(x,q) for x in arr],size(sim[1][1])...)
+  else
+    return quantile(arr,q)
+  end
+end
 timepoint_meanvar(sim,t) = componentwise_meanvar(get_timepoint(sim,t))
 timepoint_meancov(sim,t1,t2) = componentwise_meancov(get_timepoint(sim,t1),get_timepoint(sim,t2))
 timepoint_meancor(sim,t1,t2) = componentwise_meancor(get_timepoint(sim,t1),get_timepoint(sim,t2))
@@ -103,9 +145,18 @@ function componentwise_mean(A)
   mean = zero(x0)
   for x in A
     n += 1
-    mean += x
+    if typeof(x0) <: AbstractArray
+      mean .+= x
+    else
+      mean += x
+    end
   end
-  mean ./= n
+  if typeof(x0) <: AbstractArray
+    mean ./= n
+  else
+    mean /= n
+  end
+  mean
 end
 
 # Welford algorithm
@@ -119,18 +170,33 @@ function componentwise_meanvar(A;bessel=true)
   delta2 = zero(x0)
   for x in A
     n += 1
-    delta .= x .- mean
-    mean .+= delta./n
-    delta2 .= x .- mean
-    M2 .+= delta.*delta2
+    if typeof(x0) <: AbstractArray
+      delta .= x .- mean
+      mean .+= delta./n
+      delta2 .= x .- mean
+      M2 .+= delta.*delta2
+    else
+      delta = x .- mean
+      mean += delta./n
+      delta2 = x .- mean
+      M2 += delta.*delta2
+    end
   end
   if n < 2
     return NaN
   else
     if bessel
-      M2 .= M2 ./ (n .- 1)
+      if typeof(x0) <: AbstractArray
+        M2 .= M2 ./ (n .- 1)
+      else
+        M2 = M2 ./ (n .- 1)
+      end
     else
-      M2 .= M2 ./ n
+      if typeof(x0) <: AbstractArray
+        M2 .= M2 ./ n
+      else
+        M2 = M2 ./ n
+      end
     end
     return mean,M2
   end
@@ -146,18 +212,33 @@ function componentwise_meancov(A,B;bessel=true)
   dx = zero(x0)
   for (x,y) in zip(A,B)
     n += 1
-    dx .= x .- meanx
-    meanx .+= dx./n
-    meany .+= (y.-meany)./n
-    C .+= dx .* (y .- meany)
+    if typeof(x0) <: AbstractArray
+      dx .= x .- meanx
+      meanx .+= dx./n
+      meany .+= (y.-meany)./n
+      C .+= dx .* (y .- meany)
+    else
+      dx = x .- meanx
+      meanx += dx./n
+      meany += (y.-meany)./n
+      C += dx .* (y .- meany)
+    end
   end
   if n < 2
     return NaN
   else
     if bessel
-      C .= C ./ (n .- 1)
+      if typeof(x0) <: AbstractArray
+        C .= C ./ (n .- 1)
+      else
+        C = C ./ (n .- 1)
+      end
     else
-      C .= C ./ n
+      if typeof(x0) <: AbstractArray
+        C .= C ./ n
+      else
+        C = C ./ n
+      end
     end
     return meanx,meany,C
   end
@@ -167,8 +248,13 @@ function componentwise_meancor(A,B;bessel=true)
   mx,my,cov = componentwise_meancov(A,B;bessel=bessel)
   mx,vx = componentwise_meanvar(A;bessel=bessel)
   my,vy = componentwise_meanvar(B;bessel=bessel)
-  vx .= sqrt.(vx)
-  vy .= sqrt.(vy)
+  if typeof(vx) <: AbstractArray
+    vx .= sqrt.(vx)
+    vy .= sqrt.(vy)
+  else
+    vx = sqrt.(vx)
+    vy = sqrt.(vy)
+  end
   mx,my,cov./(vx.*vy)
 end
 
@@ -185,22 +271,43 @@ function componentwise_weighted_meancov(A,B,W;weight_type=:reliability)
   dx = zero(x0)
   for (x,y,w) in zip(A,B,W)
     n += 1
-    wsum .+= w
-    wsum2 .+= w.*w
-    dx .= x .- meanx
-    meanx .+= (w ./ wsum) .* dx
-    meany .+= (w ./ wsum) .* (y .- meany)
-    C .+= w .* dx .* (y .- meany)
+    if typeof(x0) <: AbstractArray
+      wsum .+= w
+      wsum2 .+= w.*w
+      dx .= x .- meanx
+      meanx .+= (w ./ wsum) .* dx
+      meany .+= (w ./ wsum) .* (y .- meany)
+      C .+= w .* dx .* (y .- meany)
+    else
+      wsum += w
+      wsum2 += w.*w
+      dx = x .- meanx
+      meanx += (w ./ wsum) .* dx
+      meany += (w ./ wsum) .* (y .- meany)
+      C += w .* dx .* (y .- meany)
+    end
   end
   if n < 2
     return NaN
   else
     if weight_type == :population
-      C .= C ./ wsum
+      if typeof(x0) <: AbstractArray
+        C .= C ./ wsum
+      else
+        C = C ./ wsum
+      end
     elseif weight_type == :reliability
-      C .= C ./ (wsum .- wsum2 ./ wsum)
+      if typeof(x0) <: AbstractArray
+        C .= C ./ (wsum .- wsum2 ./ wsum)
+      else
+        C = C ./ (wsum .- wsum2 ./ wsum)
+      end
     elseif weight_type == :frequency
-      C .= C ./ (wsum .- 1)
+      if typeof(x0) <: AbstractArray
+        C .= C ./ (wsum .- 1)
+      else
+        C = C ./ (wsum .- 1)
+      end
     else
       error("The weight_type which was chosen is not allowed.")
     end
