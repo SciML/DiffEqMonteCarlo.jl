@@ -1,8 +1,9 @@
-function solve(prob::AbstractMonteCarloProblem,alg::Union{DEAlgorithm,Void}=nothing;num_monte=10000,batch_size = 1,parallel_type=:pmap,reduction = (u,data,I)->(append!(u,batch),false),u_type = Vector{Any}(),kwargs...)
+function solve(prob::AbstractMonteCarloProblem,alg::Union{DEAlgorithm,Void}=nothing;num_monte=10000,batch_size = 1,parallel_type=:pmap,reduction = (u,data,I)->(append!(u,data),false),u_init = Vector{Any}(),kwargs...)
   num_batches = div(num_monte, batch_size)
-  u = Vector{Any}()
+  u = u_init
   elapsedTime = @elapsed for i in 1:num_batches
-    batch_data = solve_batch(prob,alg,parallel_type,batch_size*(i-1)+1):batch_size*i,kwargs...)
+    I = (batch_size*(i-1)+1):batch_size*i
+    batch_data = solve_batch(prob,alg,parallel_type,I,kwargs...)
     u,converged = reduction(u,batch_data,I)
     converged ? break : nothing
   end
