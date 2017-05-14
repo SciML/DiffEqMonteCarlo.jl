@@ -51,7 +51,7 @@ timestep_weighted_meancov(sim,W,::Colon,::Colon) = timeseries_steps_weighted_mea
 function MonteCarloSummary{T,N}(sim::AbstractMonteCarloSolution{T,N})
   t = sim[1].t
   m,v = timeseries_steps_meanvar(sim)
-  MonteCarloSummary{T,N,typeof(t),typeof(m),typeof(v)}(t,m,v,sim.elapsedTime)
+  MonteCarloSummary{T,N,typeof(t),typeof(m),typeof(v)}(t,m,v,sim.elapsedTime,sim.converged)
 end
 
 function timeseries_steps_mean(sim)
@@ -107,7 +107,7 @@ timepoint_weighted_meancov(sim,W,t1,t2) = componentwise_weighted_meancov(get_tim
 
 function MonteCarloSummary{T,N}(sim::AbstractMonteCarloSolution{T,N},t)
   m,v = timeseries_point_meanvar(sim,t)
-  MonteCarloSummary{T,N,typeof(t),typeof(m),typeof(v)}(t,m,v,sim.elapsedTime)
+  MonteCarloSummary{T,N,typeof(t),typeof(m),typeof(v)}(t,m,v,sim.elapsedTime,sim.converged)
 end
 
 function timeseries_point_mean(sim,ts)
