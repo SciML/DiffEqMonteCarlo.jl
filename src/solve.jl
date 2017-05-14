@@ -1,7 +1,7 @@
 function solve(prob::AbstractMonteCarloProblem,alg::Union{DEAlgorithm,Void}=nothing;num_monte=10000,batch_size = num_monte,parallel_type=:pmap,kwargs...)
   num_batches = div(num_monte, batch_size)
-  u = prob.u_init
-  converged= false
+  u = deepcopy(prob.u_init)
+  converged = false
   elapsedTime = @elapsed for i in 1:num_batches
     I = (batch_size*(i-1)+1):batch_size*i
     batch_data = solve_batch(prob,alg,parallel_type,I,kwargs...)
