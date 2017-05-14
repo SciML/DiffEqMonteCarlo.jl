@@ -4,12 +4,11 @@ function solve(prob::AbstractMonteCarloProblem,alg::Union{DEAlgorithm,Void}=noth
   converged= false
   elapsed_time = @elapsed for i in 1:num_batches
     if i == num_batches
-      I = num_monte - batch_size*(i-1)
+      I = (batch_size*(i-1)+1):num_monte
     else
       I = (batch_size*(i-1)+1):batch_size*i
     end
     batch_data = solve_batch(prob,alg,parallel_type,I,kwargs...)
-    @show batch_data
     u,converged = prob.reduction(u,batch_data,I)
     converged && break
   end
