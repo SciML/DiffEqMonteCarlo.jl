@@ -13,6 +13,18 @@ sim = solve(prob2,SRIW1(),dt=1//2^(3),num_monte=10,parallel_type=:threads)
 calculate_monte_errors(sim)
 @test length(sim) == 10
 
+sim = solve(prob2,SRIW1(),dt=1//2^(3),num_monte=10,parallel_type=:split_threads)
+calculate_monte_errors(sim)
+@test length(sim) == 10
+
+sim = solve(prob2,SRIW1(),dt=1//2^(3),num_monte=10,parallel_type=:none)
+calculate_monte_errors(sim)
+@test length(sim) == 10
+
+sim = solve(prob2,SRIW1(),dt=1//2^(3),num_monte=10,parallel_type=:parfor)
+calculate_monte_errors(sim)
+@test length(sim) == 10
+
 prob = prob_sde_additivesystem
 prob2 = MonteCarloProblem(prob)
 sim = solve(prob2,SRA1(),dt=1//2^(3),num_monte=10)

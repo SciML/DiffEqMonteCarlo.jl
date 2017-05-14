@@ -12,11 +12,15 @@ function solve(prob::AbstractMonteCarloProblem,alg::Union{DEAlgorithm,Void}=noth
     u,converged = prob.reduction(u,batch_data,I)
     converged && break
   end
-  MonteCarloSolution(u,elapsed_time,converged)
+  if typeof(u) <: Vector{Any}
+    _u = convert(Array{typeof(u[1])},u)
+  else
+    _u = u
+  end
+  MonteCarloSolution(_u,elapsed_time,converged)
 end
 
 function solve_batch(prob,alg,parallel_type,I,kwargs...)
-  batch_data = Vector{Any}()
   if parallel_type == :pmap
       batch_data = pmap((i)-> begin
       new_prob = prob.prob_func(deepcopy(prob.prob),i)
@@ -25,9 +29,9 @@ function solve_batch(prob,alg,parallel_type,I,kwargs...)
     batch_data = convert(Array{typeof(batch_data[1])},batch_data)
 
   elseif parallel_type == :parfor
-    batch_data = @sync @parallel (vcat) for i in I
+    batch_data = @parallel (vcat) for i in I
       new_prob = prob.prob_func(deepcopy(prob.prob),i)
-      prob.output_func(solve(new_prob,alg;kwargs...),i)
+      [prob.output_func(solve(new_prob,alg;kwargs...),i)]
     end
 
   elseif parallel_type == :threads
@@ -55,13 +59,14 @@ function solve_batch(prob,alg,parallel_type,I,kwargs...)
     batch_data = Vector{Any}()
     for i in I
       new_prob = prob.prob_func(deepcopy(prob.prob),i)
-      prob.output_func(solve(new_prob,alg;kwargs...),i)
+      push!(batch_data,prob.output_func(solve(new_prob,alg;kwargs...),i))
     end
     batch_data = convert(Array{typeof(batch_data[1])},batch_data)
 
   else
     error("Method $parallel_type is not a valid parallelism method.")
   end
+  batch_data
 end
 
 function thread_monte(prob,I,alg,procid,kwargs...)
@@ -74,5 +79,5 @@ function thread_monte(prob,I,alg,procid,kwargs...)
     push!(batch_data[Threads.threadid()],prob.output_func(solve(new_prob,alg;kwargs...),i))
   end
   batch_data = vcat(batch_data...)
-  batch_data = convert(Array{typeof(solution_data[1])},batch_data)
+  batch_data = convert(Array{typeof(batch_data[1])},batch_data)
 end
