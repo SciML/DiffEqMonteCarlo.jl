@@ -22,7 +22,8 @@ end
 
 function solve_batch(prob,alg,parallel_type,I,kwargs...)
   if parallel_type == :pmap
-      batch_data = pmap((i)-> begin
+      wp=CachingPool(workers())
+      batch_data = pmap(wp,(i)-> begin
       new_prob = prob.prob_func(deepcopy(prob.prob),i)
       prob.output_func(solve(new_prob,alg;kwargs...),i)
     end,I)
@@ -47,14 +48,17 @@ function solve_batch(prob,alg,parallel_type,I,kwargs...)
     batch_data = convert(Array{typeof(batch_data[1])},batch_data)
 
   elseif parallel_type == :split_threads
-    batch_data = @sync @parallel (vcat) for procid in 1:nprocs()
+    wp=CachingPool(workers())
+    batch_data = pmap(wp,(i) -> begin
       _num_monte = length(I)÷nprocs() # probably can be made more even?
-      if procid == nprocs()
+      if i == nprocs()
         _num_monte = length(I)-_num_monte*(nprocs()-1)
       end
-      thread_monte(prob,I,alg,procid,kwargs...)
-    end
-
+      thread_monte(prob,I,alg,i,kwargs...)
+    end,1:nprocs())
+    batch_data = vcat(batch_data...)
+    batch_data = convert(Array{typeof(batch_data[1])},batch_data)
+    
   elseif parallel_type == :none
     batch_data = Vector{Any}()
     for i in I
