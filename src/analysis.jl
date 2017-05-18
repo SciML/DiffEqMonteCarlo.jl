@@ -48,12 +48,6 @@ timestep_meancor(sim,::Colon,::Colon) = timeseries_steps_meancor(sim)
 timestep_weighted_meancov(sim,W,i,j) = componentwise_weighted_meancov(get_timestep(sim,i),get_timestep(sim,j),W)
 timestep_weighted_meancov(sim,W,::Colon,::Colon) = timeseries_steps_weighted_meancov(sim,W)
 
-function MonteCarloSummary{T,N}(sim::AbstractMonteCarloSolution{T,N})
-  t = sim[1].t
-  m,v = timeseries_steps_meanvar(sim)
-  MonteCarloSummary{T,N,typeof(t),typeof(m),typeof(v)}(t,m,v,sim.elapsedTime,sim.converged)
-end
-
 function timeseries_steps_mean(sim)
   DiffEqArray([timestep_mean(sim,i) for i in 1:length(sim[1])],sim[1].t)
 end
@@ -105,9 +99,12 @@ timepoint_meancov(sim,t1,t2) = componentwise_meancov(get_timepoint(sim,t1),get_t
 timepoint_meancor(sim,t1,t2) = componentwise_meancor(get_timepoint(sim,t1),get_timepoint(sim,t2))
 timepoint_weighted_meancov(sim,W,t1,t2) = componentwise_weighted_meancov(get_timepoint(sim,t1),get_timepoint(sim,t2),W)
 
-function MonteCarloSummary{T,N}(sim::AbstractMonteCarloSolution{T,N},t)
+function MonteCarloSummary{T,N}(sim::AbstractMonteCarloSolution{T,N},t=sim[1].t;quantiles=[0.05,0.95])
   m,v = timeseries_point_meanvar(sim,t)
-  MonteCarloSummary{T,N,typeof(t),typeof(m),typeof(v)}(t,m,v,sim.elapsedTime,sim.converged)
+  qlow = timeseries_point_quantile(sim,quantiles[1],t)
+  qhigh = timeseries_point_quantile(sim,quantiles[2],t)
+  num_monte = length(sim)
+  MonteCarloSummary{T,N,typeof(t),typeof(m),typeof(v),typeof(qlow),typeof(qhigh)}(t,m,v,qlow,qhigh,num_monte,sim.elapsedTime,sim.converged)
 end
 
 function timeseries_point_mean(sim,ts)
