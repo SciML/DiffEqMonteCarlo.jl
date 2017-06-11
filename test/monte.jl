@@ -6,8 +6,11 @@ using Base.Test
 prob = prob_sde_2Dlinear
 prob2 = MonteCarloProblem(prob)
 sim = solve(prob2,SRIW1(),dt=1//2^(3),num_monte=10)
-calculate_monte_errors(sim)
+err_sim = calculate_monte_errors(sim;weak_dense_errors=true)
 @test length(sim) == 10
+
+sim = solve(prob2,SRIW1(),dt=1//2^(3),adaptive=false,num_monte=10)
+err_sim = calculate_monte_errors(sim;weak_timeseries_errors=true)
 
 sim = solve(prob2,SRIW1(),dt=1//2^(3),num_monte=10,parallel_type=:threads)
 calculate_monte_errors(sim)
