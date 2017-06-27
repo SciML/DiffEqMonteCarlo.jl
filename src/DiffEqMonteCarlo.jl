@@ -4,6 +4,8 @@ module DiffEqMonteCarlo
 
 using DiffEqBase, RecursiveArrayTools
 
+using DistributedArrays
+
 import DiffEqBase: solve, MonteCarloSummary
 
 include("solve.jl")
