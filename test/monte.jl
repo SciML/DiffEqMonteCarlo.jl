@@ -89,3 +89,11 @@ prob2 = MonteCarloProblem(prob,prob_func=prob_func,output_func=output_func,reduc
 sim2 = solve(prob2,Tsit5(),num_monte=100,batch_size=20)
 @test sim2.converged == false
 @test mean(sim.u) ≈ sim2.u/100
+
+immutable SomeUserType end
+output_func = function (sol,i)
+    SomeUserType()
+end
+prob2 = MonteCarloProblem(prob,prob_func=prob_func,output_func=output_func)
+sim2 = solve(prob2,Tsit5(),num_monte=2)
+@test !sim2.converged && typeof(sim2.u) == Vector{SomeUserType}
