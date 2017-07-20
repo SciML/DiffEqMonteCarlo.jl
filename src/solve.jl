@@ -45,10 +45,10 @@ function solve_batch(prob,alg,parallel_type,I,pmap_batch_size,kwargs...)
       new_prob = prob.prob_func(deepcopy(prob.prob),i)
       prob.output_func(solve(new_prob,alg;kwargs...),i)
     end,I,batch_size=pmap_batch_size)
-    batch_data = convert(Array{typeof(batch_data[1])},batch_data)
+    _batch_data = convert(Array{typeof(batch_data[1])},batch_data)
 
   elseif parallel_type == :parfor
-    batch_data = @parallel (vcat) for i in I
+    _batch_data = @parallel (vcat) for i in I
       new_prob = prob.prob_func(deepcopy(prob.prob),i)
       [prob.output_func(solve(new_prob,alg;kwargs...),i)]
     end
@@ -62,16 +62,14 @@ function solve_batch(prob,alg,parallel_type,I,pmap_batch_size,kwargs...)
       new_prob = prob.prob_func(deepcopy(prob.prob),i)
       push!(batch_data[Threads.threadid()],prob.output_func(solve(new_prob,alg;kwargs...),i))
     end
-    batch_data = vcat(batch_data...)
-    batch_data = convert(Array{typeof(batch_data[1])},batch_data)
+    _batch_data = vector_batch_data_to_arr(batch_data)
 
   elseif parallel_type == :split_threads
     wp=CachingPool(workers())
     batch_data = pmap(wp,(i) -> begin
       thread_monte(prob,I,alg,i,kwargs...)
     end,1:nprocs(),batch_size=pmap_batch_size)
-    batch_data = vcat(batch_data...)
-    batch_data = convert(Array{typeof(batch_data[1])},batch_data)
+    _batch_data = vector_batch_data_to_arr(batch_data)
 
   elseif parallel_type == :none
     batch_data = Vector{Any}()
@@ -79,12 +77,12 @@ function solve_batch(prob,alg,parallel_type,I,pmap_batch_size,kwargs...)
       new_prob = prob.prob_func(deepcopy(prob.prob),i)
       push!(batch_data,prob.output_func(solve(new_prob,alg;kwargs...),i))
     end
-    batch_data = convert(Array{typeof(batch_data[1])},batch_data)
+    _batch_data = convert(Array{typeof(batch_data[1])},batch_data)
 
   else
     error("Method $parallel_type is not a valid parallelism method.")
   end
-  batch_data
+  _batch_data
 end
 
 function thread_monte(prob,I,alg,procid,kwargs...)
@@ -96,6 +94,17 @@ function thread_monte(prob,I,alg,procid,kwargs...)
     new_prob = prob.prob_func(deepcopy(prob.prob),i)
     push!(batch_data[Threads.threadid()],prob.output_func(solve(new_prob,alg;kwargs...),i))
   end
-  batch_data = vcat(batch_data...)
-  batch_data = convert(Array{typeof(batch_data[1])},batch_data)
+  vector_batch_data_to_arr(batch_data)
+end
+
+function vector_batch_data_to_arr(batch_data)
+  _batch_data = Vector{typeof(batch_data[1][1])}(sum((length(x) for x in batch_data)))
+  idx = 0
+  @inbounds for a in batch_data
+    for x in a
+      idx += 1
+      _batch_data[idx] = x
+    end
+  end
+  _batch_data
 end
