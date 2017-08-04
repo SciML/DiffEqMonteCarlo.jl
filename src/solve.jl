@@ -48,21 +48,18 @@ function solve_batch(prob,alg,parallel_type,I,pmap_batch_size,kwargs...)
     _batch_data = convert(Array{typeof(batch_data[1])},batch_data)
 
   elseif parallel_type == :parfor
-    _batch_data = @parallel (vcat) for i in I
+    _batch_data = @sync @parallel (vcat) for i in I
       new_prob = prob.prob_func(deepcopy(prob.prob),i)
       [prob.output_func(solve(new_prob,alg;kwargs...),i)]
     end
 
   elseif parallel_type == :threads
-    batch_data = Vector{Any}()
-    for i in 1:Threads.nthreads()
-      push!(batch_data,[])
-    end
+    batch_data = Vector{Any}(length(I))
     Threads.@threads for i in I
       new_prob = prob.prob_func(deepcopy(prob.prob),i)
-      push!(batch_data[Threads.threadid()],prob.output_func(solve(new_prob,alg;kwargs...),i))
+      batch_data[i] = prob.output_func(solve(new_prob,alg;kwargs...),i)
     end
-    _batch_data = vector_batch_data_to_arr(batch_data)
+    _batch_data = convert(Array{typeof(batch_data[1])},batch_data)
 
   elseif parallel_type == :split_threads
     wp=CachingPool(workers())
@@ -72,10 +69,10 @@ function solve_batch(prob,alg,parallel_type,I,pmap_batch_size,kwargs...)
     _batch_data = vector_batch_data_to_arr(batch_data)
 
   elseif parallel_type == :none
-    batch_data = Vector{Any}()
+    batch_data = Vector{Any}(length(I))
     for i in I
       new_prob = prob.prob_func(deepcopy(prob.prob),i)
-      push!(batch_data,prob.output_func(solve(new_prob,alg;kwargs...),i))
+      batch_data[i] = prob.output_func(solve(new_prob,alg;kwargs...),i)
     end
     _batch_data = convert(Array{typeof(batch_data[1])},batch_data)
 
@@ -86,15 +83,15 @@ function solve_batch(prob,alg,parallel_type,I,pmap_batch_size,kwargs...)
 end
 
 function thread_monte(prob,I,alg,procid,kwargs...)
-  batch_data = Vector{Any}()
-  for i in 1:Threads.nthreads()
-    push!(batch_data,[])
-  end
-  Threads.@threads for i in (I[1]+(procid-1)*length(I)+1):(I[1]+procid*length(I))
+  start = I[1]+(procid-1)*length(I)
+  stop = I[1]+procid*length(I)-1
+  portion = start:stop
+  batch_data = Vector{Any}(length(portion))
+  Threads.@threads for i in portion
     new_prob = prob.prob_func(deepcopy(prob.prob),i)
-    push!(batch_data[Threads.threadid()],prob.output_func(solve(new_prob,alg;kwargs...),i))
+    batch_data[i - start + 1] = prob.output_func(solve(new_prob,alg;kwargs...),i)
   end
-  vector_batch_data_to_arr(batch_data)
+  batch_data
 end
 
 function vector_batch_data_to_arr(batch_data)
