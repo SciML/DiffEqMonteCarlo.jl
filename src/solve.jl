@@ -43,21 +43,78 @@ function solve_batch(prob,alg,parallel_type,I,pmap_batch_size,kwargs...)
       wp=CachingPool(workers())
       batch_data = pmap(wp,(i)-> begin
       new_prob = prob.prob_func(deepcopy(prob.prob),i)
-      prob.output_func(solve(new_prob,alg;kwargs...),i)
+      rerun = true
+      x = prob.output_func(solve(new_prob,alg;kwargs...),i)
+      if !(typeof(x) <: Tuple)
+          warn("output_func should return (out,rerun). See docs for updated details")
+          _x = (x,false)
+      else
+        _x = x
+      end
+      rerun = _x[2]
+      while rerun
+          x = prob.output_func(solve(new_prob,alg;kwargs...),i)
+          if !(typeof(x) <: Tuple)
+              warn("output_func should return (out,rerun). See docs for updated details")
+              _x = (x,false)
+          else
+            _x = x
+          end
+          rerun = _x[2]
+      end
+      _x[1]
     end,I,batch_size=pmap_batch_size)
     _batch_data = convert(Array{typeof(batch_data[1])},batch_data)
 
   elseif parallel_type == :parfor
     _batch_data = @sync @parallel (vcat) for i in I
       new_prob = prob.prob_func(deepcopy(prob.prob),i)
-      [prob.output_func(solve(new_prob,alg;kwargs...),i)]
+      rerun = true
+      x = prob.output_func(solve(new_prob,alg;kwargs...),i)
+      if !(typeof(x) <: Tuple)
+          warn("output_func should return (out,rerun). See docs for updated details")
+          _x = (x,false)
+      else
+        _x = x
+      end
+      rerun = _x[2]
+      while rerun
+          x = prob.output_func(solve(new_prob,alg;kwargs...),i)
+          if !(typeof(x) <: Tuple)
+              warn("output_func should return (out,rerun). See docs for updated details")
+              _x = (x,false)
+          else
+            _x = x
+          end
+          rerun = _x[2]
+      end
+      [_x[1]]
     end
 
   elseif parallel_type == :threads
     batch_data = Vector{Any}(length(I))
     Threads.@threads for i in I
-      new_prob = prob.prob_func(deepcopy(prob.prob),i)
-      batch_data[i] = prob.output_func(solve(new_prob,alg;kwargs...),i)
+        new_prob = prob.prob_func(deepcopy(prob.prob),i)
+        rerun = true
+        x = prob.output_func(solve(new_prob,alg;kwargs...),i)
+        if !(typeof(x) <: Tuple)
+            warn("output_func should return (out,rerun). See docs for updated details")
+            _x = (x,false)
+        else
+          _x = x
+        end
+        rerun = _x[2]
+        while rerun
+            x = prob.output_func(solve(new_prob,alg;kwargs...),i)
+            if !(typeof(x) <: Tuple)
+                warn("output_func should return (out,rerun). See docs for updated details")
+                _x = (x,false)
+            else
+              _x = x
+            end
+            rerun = _x[2]
+        end
+        batch_data[i] = _x[1]
     end
     _batch_data = convert(Array{typeof(batch_data[1])},batch_data)
 
@@ -72,7 +129,26 @@ function solve_batch(prob,alg,parallel_type,I,pmap_batch_size,kwargs...)
     batch_data = Vector{Any}(length(I))
     for i in I
       new_prob = prob.prob_func(deepcopy(prob.prob),i)
-      batch_data[i] = prob.output_func(solve(new_prob,alg;kwargs...),i)
+      rerun = true
+      x = prob.output_func(solve(new_prob,alg;kwargs...),i)
+      if !(typeof(x) <: Tuple)
+          warn("output_func should return (out,rerun). See docs for updated details")
+          _x = (x,false)
+      else
+        _x = x
+      end
+      rerun = _x[2]
+      while rerun
+          x = prob.output_func(solve(new_prob,alg;kwargs...),i)
+          if !(typeof(x) <: Tuple)
+              warn("output_func should return (out,rerun). See docs for updated details")
+              _x = (x,false)
+          else
+            _x = x
+          end
+          rerun = _x[2]
+      end
+      batch_data[i] = _x[1]
     end
     _batch_data = convert(Array{typeof(batch_data[1])},batch_data)
 
@@ -89,7 +165,26 @@ function thread_monte(prob,I,alg,procid,kwargs...)
   batch_data = Vector{Any}(length(portion))
   Threads.@threads for i in portion
     new_prob = prob.prob_func(deepcopy(prob.prob),i)
-    batch_data[i - start + 1] = prob.output_func(solve(new_prob,alg;kwargs...),i)
+    rerun = true
+    x = prob.output_func(solve(new_prob,alg;kwargs...),i)
+    if !(typeof(x) <: Tuple)
+        warn("output_func should return (out,rerun). See docs for updated details")
+        _x = (x,false)
+    else
+      _x = x
+    end
+    rerun = _x[2]
+    while rerun
+        x = prob.output_func(solve(new_prob,alg;kwargs...),i)
+        if !(typeof(x) <: Tuple)
+            warn("output_func should return (out,rerun). See docs for updated details")
+            _x = (x,false)
+        else
+          _x = x
+        end
+        rerun = _x[2]
+    end
+    batch_data[i - start + 1] = _x[1]
   end
   batch_data
 end
