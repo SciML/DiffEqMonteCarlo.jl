@@ -54,7 +54,7 @@ output_func = function (sol,i)
 end
 
 prob = prob_ode_linear
-prob_func = function (prob,i)
+prob_func = function (prob,i,repeat)
   prob.u0 = rand()*prob.u0
   prob
 end
