@@ -55,8 +55,7 @@ end
 
 prob = prob_ode_linear
 prob_func = function (prob,i,repeat)
-  prob.u0 = rand()*prob.u0
-  prob
+  ODEProblem(prob.f,rand()*prob.u0,prob.tspan)
 end
 
 
