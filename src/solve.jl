@@ -68,6 +68,35 @@ function solve_batch(prob,alg,parallel_type,I,pmap_batch_size,kwargs...)
       _x[1]
     end,I,batch_size=pmap_batch_size)
     _batch_data = convert(Array{typeof(batch_data[1])},batch_data)
+  elseif parallel_type == :none
+
+    batch_data = map((i)-> begin
+    iter = 1
+    new_prob = prob.prob_func(deepcopy(prob.prob),i,iter)
+    rerun = true
+    x = prob.output_func(solve(new_prob,alg;kwargs...),i)
+    if !(typeof(x) <: Tuple)
+        warn("output_func should return (out,rerun). See docs for updated details")
+        _x = (x,false)
+    else
+      _x = x
+    end
+    rerun = _x[2]
+    while rerun
+        iter += 1
+        new_prob = prob.prob_func(deepcopy(prob.prob),i,iter)
+        x = prob.output_func(solve(new_prob,alg;kwargs...),i)
+        if !(typeof(x) <: Tuple)
+            warn("output_func should return (out,rerun). See docs for updated details")
+            _x = (x,false)
+        else
+          _x = x
+        end
+        rerun = _x[2]
+    end
+    _x[1]
+  end,I)
+  _batch_data = convert(Array{typeof(batch_data[1])},batch_data)
 
   elseif parallel_type == :parfor
     _batch_data = @sync @parallel (vcat) for i in I
@@ -133,37 +162,6 @@ function solve_batch(prob,alg,parallel_type,I,pmap_batch_size,kwargs...)
       thread_monte(prob,I,alg,i,kwargs...)
     end,1:nprocs(),batch_size=pmap_batch_size)
     _batch_data = vector_batch_data_to_arr(batch_data)
-
-  elseif parallel_type == :none
-    batch_data = Vector{Any}(length(I))
-    for i in I
-      iter = 1
-      new_prob = prob.prob_func(deepcopy(prob.prob),i,iter)
-      rerun = true
-      x = prob.output_func(solve(new_prob,alg;kwargs...),i)
-      if !(typeof(x) <: Tuple)
-          warn("output_func should return (out,rerun). See docs for updated details")
-          _x = (x,false)
-      else
-        _x = x
-      end
-      rerun = _x[2]
-      while rerun
-          iter += 1
-          new_prob = prob.prob_func(deepcopy(prob.prob),i,iter)
-          x = prob.output_func(solve(new_prob,alg;kwargs...),i)
-          if !(typeof(x) <: Tuple)
-              warn("output_func should return (out,rerun). See docs for updated details")
-              _x = (x,false)
-          else
-            _x = x
-          end
-          rerun = _x[2]
-      end
-      batch_data[i] = _x[1]
-    end
-    _batch_data = convert(Array{typeof(batch_data[1])},batch_data)
-
   else
     error("Method $parallel_type is not a valid parallelism method.")
   end
