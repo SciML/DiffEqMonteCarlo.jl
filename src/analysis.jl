@@ -167,7 +167,7 @@ function componentwise_meanvar(A;bessel=true)
   delta2 = zero(x0)
   for x in A
     n += 1
-    if !(typeof(x0) <: SArray) && !(typeof(x0) <: SArray)
+    if typeof(x0) <: AbstractArray && !(typeof(x0) <: SArray)
       delta .= x .- mean
       mean .+= delta./n
       delta2 .= x .- mean
