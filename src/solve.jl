@@ -1,12 +1,13 @@
-function solve{T}(prob::AbstractMonteCarloProblem,alg::Union{DEAlgorithm,Void}=nothing,
+function solve(prob::DiffEqBase.AbstractMonteCarloProblem,
+               alg::Union{DiffEqBase.DEAlgorithm,Void}=nothing,
                collect_result::Type{Val{T}} = Val{true};
                num_monte=10000,batch_size = num_monte,
                pmap_batch_size= batch_size÷100 > 0 ? batch_size÷100 : 1,
-               parallel_type= T ? :pmap : :none,kwargs...)
-
+               parallel_type= T ? :pmap : :none,kwargs...) where {T}
+  #=
   if !T
     if (parallel_type != :none && parallel_type != :threads)
-      error("Distributed arrays can only be generated via none or threads")
+      error("Distributed arrays cannot be generated via none or threads")
     end
     (batch_size != num_monte) && warn("batch_size and reductions are ignored when !collect_result")
 
@@ -16,26 +17,28 @@ function solve{T}(prob::AbstractMonteCarloProblem,alg::Union{DEAlgorithm,Void}=n
     return MonteCarloSolution(u,elapsed_time,false)
 
   else
-    num_batches = num_monte ÷ batch_size
-    u = deepcopy(prob.u_init)
-    converged = false
-    elapsed_time = @elapsed for i in 1:num_batches
-      if i == num_batches
-        I = (batch_size*(i-1)+1):num_monte
-      else
-        I = (batch_size*(i-1)+1):batch_size*i
-      end
-      batch_data = solve_batch(prob,alg,parallel_type,I,pmap_batch_size,kwargs...)
-      u,converged = prob.reduction(u,batch_data,I)
-      converged && break
-    end
-    if T && typeof(u) <: Vector{Any}
-      _u = convert(Array{typeof(u[1])},u)
+  =#
+  !T && warn("Distributed collection is currently disabled in v0.7/v1.0")
+  num_batches = num_monte ÷ batch_size
+  u = deepcopy(prob.u_init)
+  converged = false
+  elapsed_time = @elapsed for i in 1:num_batches
+    if i == num_batches
+      I = (batch_size*(i-1)+1):num_monte
     else
-      _u = u
+      I = (batch_size*(i-1)+1):batch_size*i
     end
-    return MonteCarloSolution(_u,elapsed_time,converged)
+    batch_data = solve_batch(prob,alg,parallel_type,I,pmap_batch_size,kwargs...)
+    u,converged = prob.reduction(u,batch_data,I)
+    converged && break
   end
+  if T && typeof(u) <: Vector{Any}
+    _u = convert(Array{typeof(u[1])},u)
+  else
+    _u = u
+  end
+  return MonteCarloSolution(_u,elapsed_time,converged)
+  #end
 end
 
 function solve_batch(prob,alg,parallel_type,I,pmap_batch_size,kwargs...)

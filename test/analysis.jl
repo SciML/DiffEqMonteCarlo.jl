@@ -1,6 +1,6 @@
 using DiffEqMonteCarlo, StochasticDiffEq, DiffEqBase,
       DiffEqProblemLibrary, OrdinaryDiffEq
-using Base.Test
+using Test
 
 prob = prob_sde_linear
 prob2 = MonteCarloProblem(prob)
