@@ -2,6 +2,9 @@ using DiffEqMonteCarlo, StochasticDiffEq, DiffEqBase,
       DiffEqProblemLibrary, OrdinaryDiffEq
 using Test
 
+using DiffEqProblemLibrary.SDEProblemLibrary: importsdeproblems; importsdeproblems()
+import DiffEqProblemLibrary.SDEProblemLibrary: prob_sde_linear, prob_sde_2Dlinear
+
 prob = prob_sde_linear
 prob2 = MonteCarloProblem(prob)
 sim = solve(prob2,SRIW1(),dt=1//2^(3),num_monte=10,adaptive=false)

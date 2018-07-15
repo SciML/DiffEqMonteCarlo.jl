@@ -2,7 +2,7 @@ __precompile__()
 
 module DiffEqMonteCarlo
 
-using DiffEqBase, RecursiveArrayTools, StaticArrays
+using DiffEqBase, RecursiveArrayTools, StaticArrays, Distributed
 
 import DiffEqBase: solve, MonteCarloSummary
 

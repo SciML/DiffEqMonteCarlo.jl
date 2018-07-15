@@ -2,6 +2,10 @@ using DiffEqMonteCarlo, StochasticDiffEq, DiffEqBase,
       DiffEqProblemLibrary, OrdinaryDiffEq
 using Test
 
+using DiffEqProblemLibrary.SDEProblemLibrary: importsdeproblems; importsdeproblems()
+import DiffEqProblemLibrary.SDEProblemLibrary: prob_sde_2Dlinear
+using DiffEqProblemLibrary.ODEProblemLibrary: importodeproblems; importodeproblems()
+import DiffEqProblemLibrary.ODEProblemLibrary: prob_ode_linear
 
 prob = prob_sde_2Dlinear
 prob2 = MonteCarloProblem(prob)
@@ -55,7 +59,7 @@ end
 
 prob = prob_ode_linear
 prob_func = function (prob,i,repeat)
-  ODEProblem(prob.f,rand()*prob.u0,prob.tspan)
+  ODEProblem(prob.f,rand()*prob.u0,prob.tspan,1.01)
 end
 
 
