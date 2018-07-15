@@ -31,9 +31,9 @@ covar_mat = timeseries_steps_meancov(sim)[3,3]
 @test m ≈ covar_mat[2]
 @test v ≈ covar_mat[3]
 
-@test (get_timestep(sim,1)...) == (get_timepoint(sim,0.0)...)
-@test (get_timestep(sim,2)...) == (get_timepoint(sim,1//2^(3))...)
-@test (get_timestep(sim,3)...) == (get_timepoint(sim,1//2^(2))...)
+@test (get_timestep(sim,1)...,) == (get_timepoint(sim,0.0)...,)
+@test (get_timestep(sim,2)...,) == (get_timepoint(sim,1//2^(3))...,)
+@test (get_timestep(sim,3)...,) == (get_timepoint(sim,1//2^(2))...,)
 
 sim = solve(prob2,SRIW1(),dt=1//2^(3),num_monte=10)
 m = timepoint_mean(sim,0.5)
@@ -89,9 +89,9 @@ covar_mat = timeseries_steps_meancov(sim)[3,3]
 @test m ≈ covar_mat[2]
 @test v ≈ covar_mat[3]
 
-@test (get_timestep(sim,1)...) == (get_timepoint(sim,0.0)...)
-@test (get_timestep(sim,2)...) == (get_timepoint(sim,1//2^(3))...)
-@test (get_timestep(sim,3)...) == (get_timepoint(sim,1//2^(2))...)
+@test (get_timestep(sim,1)...,) == (get_timepoint(sim,0.0)...,)
+@test (get_timestep(sim,2)...,) == (get_timepoint(sim,1//2^(3))...,)
+@test (get_timestep(sim,3)...,) == (get_timepoint(sim,1//2^(2))...,)
 
 sim = solve(prob2,SRIW1(),dt=1//2^(3),num_monte=10)
 m = timepoint_mean(sim,0.5)

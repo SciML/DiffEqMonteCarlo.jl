@@ -1,5 +1,5 @@
 function solve(prob::DiffEqBase.AbstractMonteCarloProblem,
-               alg::Union{DiffEqBase.DEAlgorithm,Void}=nothing,
+               alg::Union{DiffEqBase.DEAlgorithm,Nothing}=nothing,
                collect_result::Type{Val{T}} = Val{true};
                num_monte=10000,batch_size = num_monte,
                pmap_batch_size= batch_size÷100 > 0 ? batch_size÷100 : 1,
@@ -18,7 +18,7 @@ function solve(prob::DiffEqBase.AbstractMonteCarloProblem,
 
   else
   =#
-  !T && warn("Distributed collection is currently disabled in v0.7/v1.0")
+  !T && @warn("Distributed collection is currently disabled in v0.7/v1.0")
   num_batches = num_monte ÷ batch_size
   u = deepcopy(prob.u_init)
   converged = false
@@ -50,7 +50,7 @@ function solve_batch(prob,alg,parallel_type,I,pmap_batch_size,kwargs...)
       rerun = true
       x = prob.output_func(solve(new_prob,alg;kwargs...),i)
       if !(typeof(x) <: Tuple)
-          warn("output_func should return (out,rerun). See docs for updated details")
+          @warn("output_func should return (out,rerun). See docs for updated details")
           _x = (x,false)
       else
         _x = x
@@ -61,7 +61,7 @@ function solve_batch(prob,alg,parallel_type,I,pmap_batch_size,kwargs...)
           new_prob = prob.prob_func(deepcopy(prob.prob),i,iter)
           x = prob.output_func(solve(new_prob,alg;kwargs...),i)
           if !(typeof(x) <: Tuple)
-              warn("output_func should return (out,rerun). See docs for updated details")
+              @warn("output_func should return (out,rerun). See docs for updated details")
               _x = (x,false)
           else
             _x = x
@@ -79,7 +79,7 @@ function solve_batch(prob,alg,parallel_type,I,pmap_batch_size,kwargs...)
     rerun = true
     x = prob.output_func(solve(new_prob,alg;kwargs...),i)
     if !(typeof(x) <: Tuple)
-        warn("output_func should return (out,rerun). See docs for updated details")
+        @warn("output_func should return (out,rerun). See docs for updated details")
         _x = (x,false)
     else
       _x = x
@@ -90,7 +90,7 @@ function solve_batch(prob,alg,parallel_type,I,pmap_batch_size,kwargs...)
         new_prob = prob.prob_func(deepcopy(prob.prob),i,iter)
         x = prob.output_func(solve(new_prob,alg;kwargs...),i)
         if !(typeof(x) <: Tuple)
-            warn("output_func should return (out,rerun). See docs for updated details")
+            @warn("output_func should return (out,rerun). See docs for updated details")
             _x = (x,false)
         else
           _x = x
