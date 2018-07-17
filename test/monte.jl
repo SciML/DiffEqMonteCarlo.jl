@@ -3,33 +3,34 @@ using DiffEqMonteCarlo, StochasticDiffEq, DiffEqBase,
 using Test
 
 using DiffEqProblemLibrary.SDEProblemLibrary: importsdeproblems; importsdeproblems()
-import DiffEqProblemLibrary.SDEProblemLibrary: prob_sde_2Dlinear
+import DiffEqProblemLibrary.SDEProblemLibrary: prob_sde_2Dlinear,
+       prob_sde_additivesystem, prob_sde_lorenz
 using DiffEqProblemLibrary.ODEProblemLibrary: importodeproblems; importodeproblems()
 import DiffEqProblemLibrary.ODEProblemLibrary: prob_ode_linear
 
 prob = prob_sde_2Dlinear
 prob2 = MonteCarloProblem(prob)
 sim = solve(prob2,SRIW1(),dt=1//2^(3),num_monte=10)
-err_sim = calculate_monte_errors(sim;weak_dense_errors=true)
+err_sim = DiffEqBase.calculate_monte_errors(sim;weak_dense_errors=true)
 @test length(sim) == 10
 
 sim = solve(prob2,SRIW1(),dt=1//2^(3),adaptive=false,num_monte=10)
-err_sim = calculate_monte_errors(sim;weak_timeseries_errors=true)
+err_sim = DiffEqBase.calculate_monte_errors(sim;weak_timeseries_errors=true)
 
 sim = solve(prob2,SRIW1(),dt=1//2^(3),num_monte=10,parallel_type=:threads)
-calculate_monte_errors(sim)
+DiffEqBase.calculate_monte_errors(sim)
 @test length(sim) == 10
 
 sim = solve(prob2,SRIW1(),dt=1//2^(3),num_monte=10,parallel_type=:split_threads)
-calculate_monte_errors(sim)
+DiffEqBase.calculate_monte_errors(sim)
 @test length(sim) == 10
 
 sim = solve(prob2,SRIW1(),dt=1//2^(3),num_monte=10,parallel_type=:none)
-calculate_monte_errors(sim)
+DiffEqBase.calculate_monte_errors(sim)
 @test length(sim) == 10
 
 sim = solve(prob2,SRIW1(),dt=1//2^(3),num_monte=10,parallel_type=:parfor)
-calculate_monte_errors(sim)
+DiffEqBase.calculate_monte_errors(sim)
 @test length(sim) == 10
 
 sim = solve(prob2,SRIW1(),Val{false},dt=1//2^(3),num_monte=10)
@@ -41,7 +42,7 @@ sim = solve(prob2,SRIW1(),Val{false},dt=1//2^(3),num_monte=10,parallel_type=:thr
 prob = prob_sde_additivesystem
 prob2 = MonteCarloProblem(prob)
 sim = solve(prob2,SRA1(),dt=1//2^(3),num_monte=10)
-calculate_monte_errors(sim)
+DiffEqBase.calculate_monte_errors(sim)
 
 output_func = function (sol,i)
   last(last(sol))^2,false
