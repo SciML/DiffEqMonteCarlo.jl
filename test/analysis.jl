@@ -77,7 +77,7 @@ m3,m4,c = timestep_meancov(sim,3,3)
 @test m ≈ m3
 @test v ≈ c
 m3,m4,c = timestep_meancor(sim,3,3)
-@test c ≈ one(c)
+@test c ≈ one(c,size(c))
 vecarr = timeseries_steps_mean(sim)
 vecarr = timeseries_steps_median(sim)
 vecarr = timeseries_steps_quantile(sim,0.5)
@@ -107,7 +107,7 @@ m3,m4,c = timepoint_meancov(sim,0.5,0.5)
 @test m ≈ m3
 @test v ≈ c
 m3,m4,c = timepoint_meancor(sim,0.5,0.5)
-@test c ≈ one(c)
+@test c ≈ one(c,size(c))
 m_series = timeseries_point_mean(sim,0:1//2^(3):1)
 m_series = timeseries_point_median(sim,0:1//2^(3):1)
 m_series = timeseries_point_quantile(sim,0.5,0:1//2^(3):1)
