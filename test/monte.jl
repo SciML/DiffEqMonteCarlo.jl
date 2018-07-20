@@ -1,6 +1,6 @@
 using DiffEqMonteCarlo, StochasticDiffEq, DiffEqBase,
       DiffEqProblemLibrary, OrdinaryDiffEq
-using Test
+using Test, Random, Statistics
 
 using DiffEqProblemLibrary.SDEProblemLibrary: importsdeproblems; importsdeproblems()
 import DiffEqProblemLibrary.SDEProblemLibrary: prob_sde_2Dlinear,

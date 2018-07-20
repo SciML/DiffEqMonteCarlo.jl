@@ -44,33 +44,33 @@ end
 function solve_batch(prob,alg,parallel_type,I,pmap_batch_size,kwargs...)
   if parallel_type == :pmap
       wp=CachingPool(workers())
-      batch_data = pmap(wp,(i)-> begin
-      iter = 1
-      new_prob = prob.prob_func(deepcopy(prob.prob),i,iter)
-      rerun = true
-      x = prob.output_func(solve(new_prob,alg;kwargs...),i)
-      if !(typeof(x) <: Tuple)
-          @warn("output_func should return (out,rerun). See docs for updated details")
-          _x = (x,false)
-      else
-        _x = x
+      batch_data = pmap(wp,I,batch_size=pmap_batch_size) do i
+        iter = 1
+        new_prob = prob.prob_func(deepcopy(prob.prob),i,iter)
+        rerun = true
+        x = prob.output_func(solve(new_prob,alg;kwargs...),i)
+        if !(typeof(x) <: Tuple)
+            @warn("output_func should return (out,rerun). See docs for updated details")
+            _x = (x,false)
+        else
+          _x = x
+        end
+        rerun = _x[2]
+        while rerun
+            iter += 1
+            new_prob = prob.prob_func(deepcopy(prob.prob),i,iter)
+            x = prob.output_func(solve(new_prob,alg;kwargs...),i)
+            if !(typeof(x) <: Tuple)
+                @warn("output_func should return (out,rerun). See docs for updated details")
+                _x = (x,false)
+            else
+              _x = x
+            end
+            rerun = _x[2]
+        end
+        _x[1]
       end
-      rerun = _x[2]
-      while rerun
-          iter += 1
-          new_prob = prob.prob_func(deepcopy(prob.prob),i,iter)
-          x = prob.output_func(solve(new_prob,alg;kwargs...),i)
-          if !(typeof(x) <: Tuple)
-              @warn("output_func should return (out,rerun). See docs for updated details")
-              _x = (x,false)
-          else
-            _x = x
-          end
-          rerun = _x[2]
-      end
-      _x[1]
-    end,I,batch_size=pmap_batch_size)
-    _batch_data = convert(Array{typeof(batch_data[1])},batch_data)
+      _batch_data = convert(Array{typeof(batch_data[1])},batch_data)
   elseif parallel_type == :none
 
     batch_data = map((i)-> begin
@@ -102,7 +102,7 @@ function solve_batch(prob,alg,parallel_type,I,pmap_batch_size,kwargs...)
   _batch_data = convert(Array{typeof(batch_data[1])},batch_data)
 
   elseif parallel_type == :parfor
-    _batch_data = @sync @parallel (vcat) for i in I
+    _batch_data = @sync @distributed (vcat) for i in I
       iter = 1
       new_prob = prob.prob_func(deepcopy(prob.prob),i,iter)
       rerun = true
@@ -130,7 +130,7 @@ function solve_batch(prob,alg,parallel_type,I,pmap_batch_size,kwargs...)
     end
 
   elseif parallel_type == :threads
-    batch_data = Vector{Any}(length(I))
+    batch_data = Vector{Any}(undef,length(I))
     Threads.@threads for i in I
         iter = 1
         new_prob = prob.prob_func(deepcopy(prob.prob),i,iter)
@@ -161,9 +161,9 @@ function solve_batch(prob,alg,parallel_type,I,pmap_batch_size,kwargs...)
 
   elseif parallel_type == :split_threads
     wp=CachingPool(workers())
-    batch_data = pmap(wp,(i) -> begin
+    batch_data = pmap(wp,1:nprocs(),batch_size=pmap_batch_size) do i
       thread_monte(prob,I,alg,i,kwargs...)
-    end,1:nprocs(),batch_size=pmap_batch_size)
+    end
     _batch_data = vector_batch_data_to_arr(batch_data)
   else
     error("Method $parallel_type is not a valid parallelism method.")
@@ -175,7 +175,7 @@ function thread_monte(prob,I,alg,procid,kwargs...)
   start = I[1]+(procid-1)*length(I)
   stop = I[1]+procid*length(I)-1
   portion = start:stop
-  batch_data = Vector{Any}(length(portion))
+  batch_data = Vector{Any}(undef,length(portion))
   Threads.@threads for i in portion
     iter = 1
     new_prob = prob.prob_func(deepcopy(prob.prob),i,iter)
@@ -206,7 +206,7 @@ function thread_monte(prob,I,alg,procid,kwargs...)
 end
 
 function vector_batch_data_to_arr(batch_data)
-  _batch_data = Vector{typeof(batch_data[1][1])}(sum((length(x) for x in batch_data)))
+  _batch_data = Vector{typeof(batch_data[1][1])}(undef,sum((length(x) for x in batch_data)))
   idx = 0
   @inbounds for a in batch_data
     for x in a
