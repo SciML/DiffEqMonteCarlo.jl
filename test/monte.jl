@@ -64,7 +64,7 @@ prob_func = function (prob,i,repeat)
 end
 
 
-srand(100)
+Random.seed!(100)
 reduction = function (u,batch,I)
   u = append!(u,batch)
   u,((var(u)/sqrt(last(I)))/mean(u)<0.5) ? true : false
@@ -75,7 +75,7 @@ sim = solve(prob2,Tsit5(),num_monte=10000,batch_size=20)
 @test sim.converged == true
 
 
-srand(100)
+Random.seed!(100)
 reduction = function (u,batch,I)
   u = append!(u,batch)
   u,false
@@ -85,7 +85,7 @@ prob2 = MonteCarloProblem(prob,prob_func=prob_func,output_func=output_func,reduc
 sim = solve(prob2,Tsit5(),num_monte=100,batch_size=20)
 @test sim.converged == false
 
-srand(100)
+Random.seed!(100)
 reduction = function (u,batch,I)
   u+sum(batch),false
 end
