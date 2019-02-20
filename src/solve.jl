@@ -131,10 +131,10 @@ function solve_batch(prob,alg,parallel_type,I,pmap_batch_size,kwargs...)
 
   elseif parallel_type == :threads
     batch_data = Vector{Any}(undef,length(I))
-    Threads.@threads for i in I
+    Threads.@threads for batch_idx in axes(batch_data, 1)
+        i = I[batch_idx]
         iter = 1
         new_prob = prob.prob_func(deepcopy(prob.prob),i,iter)
-        rerun = true
         x = prob.output_func(solve(new_prob,alg;kwargs...),i)
         if !(typeof(x) <: Tuple)
             warn("output_func should return (out,rerun). See docs for updated details")
@@ -155,7 +155,7 @@ function solve_batch(prob,alg,parallel_type,I,pmap_batch_size,kwargs...)
             end
             rerun = _x[2]
         end
-        batch_data[i] = _x[1]
+        batch_data[batch_idx] = _x[1]
     end
     _batch_data = convert(Array{typeof(batch_data[1])},batch_data)
 
