@@ -10,7 +10,7 @@ import DiffEqProblemLibrary.ODEProblemLibrary: prob_ode_linear
 
 prob = prob_sde_2Dlinear
 prob2 = MonteCarloProblem(prob)
-sim = solve(prob2,SRIW1(),dt=1//2^(3),num_monte=10)
+sim = solve(prob2,SRIW1(),DiffEqMonteCarlo.MonteThreads(),dt=1//2^(3),num_monte=10)
 err_sim = DiffEqBase.calculate_monte_errors(sim;weak_dense_errors=true)
 @test length(sim) == 10
 

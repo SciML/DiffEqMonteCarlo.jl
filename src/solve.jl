@@ -1,24 +1,28 @@
+abstract type MonteCarloAlgorithm <: DiffEqBase.DEAlgorithm end
+abstract type BasicMonteCarloAlgorithm <: MonteCarloAlgorithm end
+struct MonteThreads <: BasicMonteCarloAlgorithm end
+struct MonteDistributed <: BasicMonteCarloAlgorithm end
+struct MonteSplitThreads <: BasicMonteCarloAlgorithm end
+struct MonteSerial <: BasicMonteCarloAlgorithm end
+
+#=
+if (parallel_type != :none && parallel_type != :threads)
+  error("Distributed arrays cannot be generated via none or threads")
+end
+(batch_size != num_monte) && warn("batch_size and reductions are ignored when !collect_result")
+
+elapsed_time = @elapsed u = DArray((num_monte,)) do I
+    solve_batch(prob,alg,parallel_type,I[1],pmap_batch_size,kwargs...)
+end
+return MonteCarloSolution(u,elapsed_time,false)
+=#
+
 function solve(prob::DiffEqBase.AbstractMonteCarloProblem,
-               alg::Union{DiffEqBase.DEAlgorithm,Nothing}=nothing,
-               collect_result::Type{Val{T}} = Val{true};
-               num_monte=10000,batch_size = num_monte,
-               pmap_batch_size= batch_size÷100 > 0 ? batch_size÷100 : 1,
-               parallel_type= T ? :pmap : :none,kwargs...) where {T}
-  #=
-  if !T
-    if (parallel_type != :none && parallel_type != :threads)
-      error("Distributed arrays cannot be generated via none or threads")
-    end
-    (batch_size != num_monte) && warn("batch_size and reductions are ignored when !collect_result")
+               alg::Union{DiffEqBase.DEAlgorithm,Nothing},
+               montealg::BasicMonteCarloAlgorithm;
+               num_monte, batch_size = num_monte,
+               pmap_batch_size = batch_size÷100 > 0 ? batch_size÷100 : 1, kwargs...)
 
-    elapsed_time = @elapsed u = DArray((num_monte,)) do I
-        solve_batch(prob,alg,parallel_type,I[1],pmap_batch_size,kwargs...)
-    end
-    return MonteCarloSolution(u,elapsed_time,false)
-
-  else
-  =#
-  !T && @warn("Distributed collection is currently disabled in v0.7/v1.0")
   num_batches = num_monte ÷ batch_size
   u = deepcopy(prob.u_init)
   converged = false
@@ -28,84 +32,61 @@ function solve(prob::DiffEqBase.AbstractMonteCarloProblem,
     else
       I = (batch_size*(i-1)+1):batch_size*i
     end
-    batch_data = solve_batch(prob,alg,parallel_type,I,pmap_batch_size,kwargs...)
+    batch_data = solve_batch(prob,alg,montealg,I,pmap_batch_size,kwargs...)
     u,converged = prob.reduction(u,batch_data,I)
     converged && break
   end
-  if T && typeof(u) <: Vector{Any}
-    _u = convert(Array{typeof(u[1])},u)
-  else
-    _u = u
-  end
-  return MonteCarloSolution(_u,elapsed_time,converged)
-  #end
+  return MonteCarloSolution(u,elapsed_time,converged)
 end
 
-function solve_batch(prob,alg,parallel_type,I,pmap_batch_size,kwargs...)
-  if parallel_type == :pmap
-      wp=CachingPool(workers())
-      batch_data = pmap(wp,I,batch_size=pmap_batch_size) do i
-        iter = 1
-        new_prob = prob.prob_func(deepcopy(prob.prob),i,iter)
-        rerun = true
-        x = prob.output_func(solve(new_prob,alg;kwargs...),i)
-        if !(typeof(x) <: Tuple)
-            @warn("output_func should return (out,rerun). See docs for updated details")
-            _x = (x,false)
-        else
-          _x = x
-        end
-        rerun = _x[2]
-        while rerun
-            iter += 1
-            new_prob = prob.prob_func(deepcopy(prob.prob),i,iter)
-            x = prob.output_func(solve(new_prob,alg;kwargs...),i)
-            if !(typeof(x) <: Tuple)
-                @warn("output_func should return (out,rerun). See docs for updated details")
-                _x = (x,false)
-            else
-              _x = x
-            end
-            rerun = _x[2]
-        end
-        _x[1]
+function batch_func(i,prob,alg,I,kwargs...)
+  iter = 1
+  new_prob = prob.prob_func(deepcopy(prob.prob),i,iter)
+  rerun = true
+  x = prob.output_func(solve(new_prob,alg;kwargs...),i)
+  if !(typeof(x) <: Tuple)
+      @warn("output_func should return (out,rerun). See docs for updated details")
+      _x = (x,false)
+  else
+    _x = x
+  end
+  rerun = _x[2]
+  while rerun
+      iter += 1
+      new_prob = prob.prob_func(deepcopy(prob.prob),i,iter)
+      x = prob.output_func(solve(new_prob,alg;kwargs...),i)
+      if !(typeof(x) <: Tuple)
+          @warn("output_func should return (out,rerun). See docs for updated details")
+          _x = (x,false)
+      else
+        _x = x
       end
-      _batch_data = convert(Array{typeof(batch_data[1])},batch_data)
-  elseif parallel_type == :none
+      rerun = _x[2]
+  end
+  _x[1]
+end
 
-    batch_data = map((i)-> begin
-    iter = 1
-    new_prob = prob.prob_func(deepcopy(prob.prob),i,iter)
-    rerun = true
-    x = prob.output_func(solve(new_prob,alg;kwargs...),i)
-    if !(typeof(x) <: Tuple)
-        @warn("output_func should return (out,rerun). See docs for updated details")
-        _x = (x,false)
-    else
-      _x = x
-    end
-    rerun = _x[2]
-    while rerun
-        iter += 1
-        new_prob = prob.prob_func(deepcopy(prob.prob),i,iter)
-        x = prob.output_func(solve(new_prob,alg;kwargs...),i)
-        if !(typeof(x) <: Tuple)
-            @warn("output_func should return (out,rerun). See docs for updated details")
-            _x = (x,false)
-        else
-          _x = x
-        end
-        rerun = _x[2]
-    end
-    _x[1]
-  end,I)
+function solve_batch(prob,alg,::MonteDistributed,I,pmap_batch_size,kwargs...)
+  wp=CachingPool(workers())
+  batch_data = pmap(wp,I,batch_size=pmap_batch_size) do i
+    batch_func(i,prob,alg,I,kwargs...)
+  end
   _batch_data = convert(Array{typeof(batch_data[1])},batch_data)
+end
 
-  elseif parallel_type == :parfor
-    _batch_data = @sync @distributed (vcat) for i in I
+function solve_batch(prob,alg,::MonteSerial,I,pmap_batch_size,kwargs...)
+  batch_data = map(I) do i
+    batch_func(i,prob,alg,I,kwargs...)
+  end
+  _batch_data = convert(Array{typeof(batch_data[1])},batch_data)
+end
+
+function solve_batch(prob,alg,::MonteThreads,I,pmap_batch_size,kwargs...)
+  batch_data = Vector{Any}(undef,length(I))
+  Threads.@threads for batch_idx in axes(batch_data, 1)
+      i = I[batch_idx]
       iter = 1
       new_prob = prob.prob_func(deepcopy(prob.prob),i,iter)
-      rerun = true
       x = prob.output_func(solve(new_prob,alg;kwargs...),i)
       if !(typeof(x) <: Tuple)
           warn("output_func should return (out,rerun). See docs for updated details")
@@ -114,6 +95,7 @@ function solve_batch(prob,alg,parallel_type,I,pmap_batch_size,kwargs...)
         _x = x
       end
       rerun = _x[2]
+
       while rerun
           iter += 1
           new_prob = prob.prob_func(deepcopy(prob.prob),i,iter)
@@ -126,49 +108,17 @@ function solve_batch(prob,alg,parallel_type,I,pmap_batch_size,kwargs...)
           end
           rerun = _x[2]
       end
-      [_x[1]]
-    end
-
-  elseif parallel_type == :threads
-    batch_data = Vector{Any}(undef,length(I))
-    Threads.@threads for batch_idx in axes(batch_data, 1)
-        i = I[batch_idx]
-        iter = 1
-        new_prob = prob.prob_func(deepcopy(prob.prob),i,iter)
-        x = prob.output_func(solve(new_prob,alg;kwargs...),i)
-        if !(typeof(x) <: Tuple)
-            warn("output_func should return (out,rerun). See docs for updated details")
-            _x = (x,false)
-        else
-          _x = x
-        end
-        rerun = _x[2]
-        while rerun
-            iter += 1
-            new_prob = prob.prob_func(deepcopy(prob.prob),i,iter)
-            x = prob.output_func(solve(new_prob,alg;kwargs...),i)
-            if !(typeof(x) <: Tuple)
-                warn("output_func should return (out,rerun). See docs for updated details")
-                _x = (x,false)
-            else
-              _x = x
-            end
-            rerun = _x[2]
-        end
-        batch_data[batch_idx] = _x[1]
-    end
-    _batch_data = convert(Array{typeof(batch_data[1])},batch_data)
-
-  elseif parallel_type == :split_threads
-    wp=CachingPool(workers())
-    batch_data = pmap(wp,1:nprocs(),batch_size=pmap_batch_size) do i
-      thread_monte(prob,I,alg,i,kwargs...)
-    end
-    _batch_data = vector_batch_data_to_arr(batch_data)
-  else
-    error("Method $parallel_type is not a valid parallelism method.")
+      batch_data[batch_idx] = _x[1]
   end
-  _batch_data
+  _batch_data = convert(Array{typeof(batch_data[1])},batch_data)
+end
+
+function solve_batch(prob,alg,::MonteSplitThreads,I,pmap_batch_size,kwargs...)
+  wp=CachingPool(workers())
+  batch_data = pmap(wp,1:nprocs(),batch_size=pmap_batch_size) do i
+    thread_monte(prob,I,alg,i,kwargs...)
+  end
+  _batch_data = vector_batch_data_to_arr(batch_data)
 end
 
 function thread_monte(prob,I,alg,procid,kwargs...)
