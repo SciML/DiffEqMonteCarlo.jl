@@ -17,11 +17,37 @@ end
 return MonteCarloSolution(u,elapsed_time,false)
 =#
 
-function solve(prob::DiffEqBase.AbstractMonteCarloProblem,
-               alg::Union{DiffEqBase.DEAlgorithm,Nothing},
-               montealg::BasicMonteCarloAlgorithm;
-               num_monte, batch_size = num_monte,
-               pmap_batch_size = batch_size÷100 > 0 ? batch_size÷100 : 1, kwargs...)
+function DiffEqBase.__solve(prob::DiffEqBase.AbstractMonteCarloProblem,
+                            alg::Union{DiffEqBase.DEAlgorithm,Nothing};
+                            kwargs...)
+    if alg isa MonteCarloAlgorithm
+      @error "You forgot to pass a DE solver algorithm! Only a MonteCarloAlgorithm has been supplied. Exiting"
+    end
+    if :parallel_type ∈ keys(kwargs)
+      #@warn "parallel_type has been deprecated. Please refer to the docs for the new dispatch-based system."
+      if parallel_type == :none
+        montealg = MonteSerial()
+      elseif parallel_type == :pmap || parallel_type == :parfor
+        montealg = MonteDistributed()
+      elseif parallel_type == :threads
+        montealg = MonteThreads()
+      elseif parallel_type == :split_threads
+        montealg = MonteSplitThreads()
+      else
+        @error "parallel_type value not recognized"
+      end
+    else
+      montealg = MonteSerial()
+    end
+    DiffEqBase.__solve(prob,alg,montealg;kwargs...)
+end
+
+function DiffEqBase.__solve(prob::DiffEqBase.AbstractMonteCarloProblem,
+                 alg::Union{DiffEqBase.DEAlgorithm,Nothing},
+                 montealg::BasicMonteCarloAlgorithm;
+                 num_monte, batch_size = num_monte,
+                 pmap_batch_size = batch_size÷100 > 0 ? batch_size÷100 : 1, kwargs...)
+
 
   num_batches = num_monte ÷ batch_size
   u = deepcopy(prob.u_init)
@@ -36,7 +62,12 @@ function solve(prob::DiffEqBase.AbstractMonteCarloProblem,
     u,converged = prob.reduction(u,batch_data,I)
     converged && break
   end
-  return MonteCarloSolution(u,elapsed_time,converged)
+  if typeof(u) <: Vector{Any}
+    _u = convert(Array{typeof(u[1])},u)
+  else
+    _u = u
+  end
+  return MonteCarloSolution(_u,elapsed_time,converged)
 end
 
 function batch_func(i,prob,alg,I,kwargs...)
@@ -110,6 +141,7 @@ function solve_batch(prob,alg,::MonteThreads,I,pmap_batch_size,kwargs...)
       end
       batch_data[batch_idx] = _x[1]
   end
+  @show batch_data
   _batch_data = convert(Array{typeof(batch_data[1])},batch_data)
 end
 

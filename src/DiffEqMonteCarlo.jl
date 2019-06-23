@@ -1,10 +1,9 @@
-__precompile__()
-
 module DiffEqMonteCarlo
 
-using DiffEqBase, RecursiveArrayTools, StaticArrays, Distributed, Statistics
+using DiffEqBase, RecursiveArrayTools, StaticArrays, Distributed, Statistics,
+      InteractiveUtils
 
-import DiffEqBase: solve, MonteCarloSummary
+import DiffEqBase: MonteCarloSummary
 
 include("solve.jl")
 include("analysis.jl")
