@@ -1,7 +1,6 @@
 module DiffEqMonteCarlo
 
-using DiffEqBase, RecursiveArrayTools, StaticArrays, Distributed, Statistics,
-      InteractiveUtils
+using DiffEqBase, RecursiveArrayTools, StaticArrays, Distributed, Statistics
 
 import DiffEqBase: MonteCarloSummary
 

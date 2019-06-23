@@ -141,7 +141,6 @@ function solve_batch(prob,alg,::MonteThreads,I,pmap_batch_size,kwargs...)
       end
       batch_data[batch_idx] = _x[1]
   end
-  @show batch_data
   _batch_data = convert(Array{typeof(batch_data[1])},batch_data)
 end
 
