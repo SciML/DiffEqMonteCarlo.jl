@@ -24,14 +24,14 @@ function DiffEqBase.__solve(prob::DiffEqBase.AbstractMonteCarloProblem,
       @error "You forgot to pass a DE solver algorithm! Only a MonteCarloAlgorithm has been supplied. Exiting"
     end
     if :parallel_type ∈ keys(kwargs)
-      #@warn "parallel_type has been deprecated. Please refer to the docs for the new dispatch-based system."
-      if parallel_type == :none
+      println("parallel_type has been deprecated. Please refer to the docs.")
+      if kwargs[:parallel_type] == :none
         montealg = MonteSerial()
-      elseif parallel_type == :pmap || parallel_type == :parfor
+      elseif kwargs[:parallel_type] == :pmap || kwargs[:parallel_type] == :parfor
         montealg = MonteDistributed()
-      elseif parallel_type == :threads
+      elseif kwargs[:parallel_type] == :threads
         montealg = MonteThreads()
-      elseif parallel_type == :split_threads
+      elseif kwargs[:parallel_type] == :split_threads
         montealg = MonteSplitThreads()
       else
         @error "parallel_type value not recognized"
