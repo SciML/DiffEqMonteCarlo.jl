@@ -6,13 +6,13 @@ struct MonteSplitThreads <: BasicMonteCarloAlgorithm end
 struct MonteSerial <: BasicMonteCarloAlgorithm end
 
 #=
-if (parallel_type != :none && parallel_type != :threads)
+if (kwargs[:parallel_type] == != :none && kwargs[:parallel_type] == != :threads)
   error("Distributed arrays cannot be generated via none or threads")
 end
 (batch_size != num_monte) && warn("batch_size and reductions are ignored when !collect_result")
 
 elapsed_time = @elapsed u = DArray((num_monte,)) do I
-    solve_batch(prob,alg,parallel_type,I[1],pmap_batch_size,kwargs...)
+    solve_batch(prob,alg,kwargs[:parallel_type] ==,I[1],pmap_batch_size,kwargs...)
 end
 return MonteCarloSolution(u,elapsed_time,false)
 =#
@@ -24,7 +24,6 @@ function DiffEqBase.__solve(prob::DiffEqBase.AbstractMonteCarloProblem,
       @error "You forgot to pass a DE solver algorithm! Only a MonteCarloAlgorithm has been supplied. Exiting"
     end
     if :parallel_type ∈ keys(kwargs)
-      println("parallel_type has been deprecated. Please refer to the docs.")
       if kwargs[:parallel_type] == :none
         montealg = MonteSerial()
       elseif kwargs[:parallel_type] == :pmap || kwargs[:parallel_type] == :parfor
@@ -38,6 +37,9 @@ function DiffEqBase.__solve(prob::DiffEqBase.AbstractMonteCarloProblem,
       end
     else
       montealg = MonteSerial()
+    end
+    if :parallel_type ∈ keys(kwargs)
+      @warn "parallel_type has been deprecated. Please refer to the docs for the new dispatch-based system."
     end
     DiffEqBase.__solve(prob,alg,montealg;kwargs...)
 end
