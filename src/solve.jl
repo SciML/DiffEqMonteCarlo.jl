@@ -1,5 +1,4 @@
-abstract type MonteCarloAlgorithm <: DiffEqBase.DEAlgorithm end
-abstract type BasicMonteCarloAlgorithm <: MonteCarloAlgorithm end
+abstract type BasicMonteCarloAlgorithm <: DiffEqBase.MonteCarloAlgorithm end
 struct MonteThreads <: BasicMonteCarloAlgorithm end
 struct MonteDistributed <: BasicMonteCarloAlgorithm end
 struct MonteSplitThreads <: BasicMonteCarloAlgorithm end
