@@ -49,8 +49,9 @@ function DiffEqBase.__solve(prob::DiffEqBase.AbstractMonteCarloProblem,
                  num_monte, batch_size = num_monte,
                  pmap_batch_size = batch_size÷100 > 0 ? batch_size÷100 : 1, kwargs...)
 
-
   num_batches = num_monte ÷ batch_size
+  num_batches * batch_size != num_monte && (num_batches += 1)
+  
   u = deepcopy(prob.u_init)
   converged = false
   elapsed_time = @elapsed for i in 1:num_batches
