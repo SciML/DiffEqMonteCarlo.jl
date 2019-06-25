@@ -19,7 +19,7 @@ return MonteCarloSolution(u,elapsed_time,false)
 function DiffEqBase.__solve(prob::DiffEqBase.AbstractMonteCarloProblem,
                             alg::Union{DiffEqBase.DEAlgorithm,Nothing};
                             kwargs...)
-    if alg isa MonteCarloAlgorithm
+    if alg isa DiffEqBase.MonteCarloAlgorithm
       @error "You forgot to pass a DE solver algorithm! Only a MonteCarloAlgorithm has been supplied. Exiting"
     end
     if :parallel_type ∈ keys(kwargs)
@@ -51,7 +51,7 @@ function DiffEqBase.__solve(prob::DiffEqBase.AbstractMonteCarloProblem,
 
   num_batches = num_monte ÷ batch_size
   num_batches * batch_size != num_monte && (num_batches += 1)
-  
+
   u = deepcopy(prob.u_init)
   converged = false
   elapsed_time = @elapsed for i in 1:num_batches
