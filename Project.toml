@@ -5,7 +5,7 @@ version = "v0.15.0"
 
 [deps]
 DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
-Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
+Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 RecursiveArrayTools = "731186ca-8d62-57ce-b412-fbd966d074cd"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
