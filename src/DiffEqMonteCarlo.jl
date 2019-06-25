@@ -1,13 +1,12 @@
-__precompile__()
-
 module DiffEqMonteCarlo
 
 using DiffEqBase, RecursiveArrayTools, StaticArrays, Distributed, Statistics
-
-import DiffEqBase: solve, MonteCarloSummary
+import DiffEqBase: MonteCarloSummary
 
 include("solve.jl")
 include("analysis.jl")
+
+export MonteThreads, MonteDistributed, MonteSplitThreads, MonteSerial
 
 export get_timestep, get_timepoint, apply_timestep, apply_timepoint,
        componentwise_vectors_timestep, componentwise_vectors_timepoint
