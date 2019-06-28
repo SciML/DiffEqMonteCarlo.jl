@@ -9,41 +9,41 @@ using DiffEqProblemLibrary.ODEProblemLibrary: importodeproblems; importodeproble
 import DiffEqProblemLibrary.ODEProblemLibrary: prob_ode_linear
 
 prob = prob_sde_2Dlinear
-prob2 = MonteCarloProblem(prob)
+prob2 = EnsembleProblem(prob)
 sim = solve(prob2,SRIW1(),dt=1//2^(3),num_monte=10)
 sim = solve(prob2,SRIW1(),dt=1//2^(3),num_monte=10,parallel_type=:threads)
-sim = solve(prob2,SRIW1(),DiffEqMonteCarlo.MonteThreads(),dt=1//2^(3),num_monte=10)
-err_sim = DiffEqBase.calculate_monte_errors(sim;weak_dense_errors=true)
+sim = solve(prob2,SRIW1(),DiffEqMonteCarlo.EnsembleThreads(),dt=1//2^(3),num_monte=10)
+err_sim = DiffEqBase.calculate_ensemble_errors(sim;weak_dense_errors=true)
 @test length(sim) == 10
 
-sim = solve(prob2,SRIW1(),DiffEqMonteCarlo.MonteThreads(),dt=1//2^(3),adaptive=false,num_monte=10)
-err_sim = DiffEqBase.calculate_monte_errors(sim;weak_timeseries_errors=true)
+sim = solve(prob2,SRIW1(),DiffEqMonteCarlo.EnsembleThreads(),dt=1//2^(3),adaptive=false,num_monte=10)
+err_sim = DiffEqBase.calculate_ensemble_errors(sim;weak_timeseries_errors=true)
 
-sim = solve(prob2,SRIW1(),DiffEqMonteCarlo.MonteThreads(),dt=1//2^(3),num_monte=10)
-DiffEqBase.calculate_monte_errors(sim)
+sim = solve(prob2,SRIW1(),DiffEqMonteCarlo.EnsembleThreads(),dt=1//2^(3),num_monte=10)
+DiffEqBase.calculate_ensemble_errors(sim)
 @test length(sim) == 10
 
-sim = solve(prob2,SRIW1(),DiffEqMonteCarlo.MonteSplitThreads(),dt=1//2^(3),num_monte=10)
-DiffEqBase.calculate_monte_errors(sim)
+sim = solve(prob2,SRIW1(),DiffEqMonteCarlo.EnsembleSplitThreads(),dt=1//2^(3),num_monte=10)
+DiffEqBase.calculate_ensemble_errors(sim)
 @test length(sim) == 10
 
-sim = solve(prob2,SRIW1(),DiffEqMonteCarlo.MonteSerial(),dt=1//2^(3),num_monte=10)
-DiffEqBase.calculate_monte_errors(sim)
+sim = solve(prob2,SRIW1(),DiffEqMonteCarlo.EnsembleSerial(),dt=1//2^(3),num_monte=10)
+DiffEqBase.calculate_ensemble_errors(sim)
 @test length(sim) == 10
 
 prob = prob_sde_additivesystem
-prob2 = MonteCarloProblem(prob)
+prob2 = EnsembleProblem(prob)
 sim = solve(prob2,SRA1(),dt=1//2^(3),num_monte=10)
-DiffEqBase.calculate_monte_errors(sim)
+DiffEqBase.calculate_ensemble_errors(sim)
 
 output_func = function (sol,i)
   last(last(sol))^2,false
 end
-prob2 = MonteCarloProblem(prob,output_func=output_func)
+prob2 = EnsembleProblem(prob,output_func=output_func)
 sim = solve(prob2,SRA1(),dt=1//2^(3),num_monte=10)
 
 prob = prob_sde_lorenz
-prob2 = MonteCarloProblem(prob)
+prob2 = EnsembleProblem(prob)
 sim = solve(prob2,SRIW1(),dt=1//2^(3),num_monte=10)
 
 output_func = function (sol,i)
@@ -62,7 +62,7 @@ reduction = function (u,batch,I)
   u,((var(u)/sqrt(last(I)))/mean(u)<0.5) ? true : false
 end
 
-prob2 = MonteCarloProblem(prob,prob_func=prob_func,output_func=output_func,reduction=reduction,u_init=Vector{Float64}())
+prob2 = EnsembleProblem(prob,prob_func=prob_func,output_func=output_func,reduction=reduction,u_init=Vector{Float64}())
 sim = solve(prob2,Tsit5(),num_monte=10000,batch_size=20)
 @test sim.converged == true
 
@@ -73,7 +73,7 @@ reduction = function (u,batch,I)
   u,false
 end
 
-prob2 = MonteCarloProblem(prob,prob_func=prob_func,output_func=output_func,reduction=reduction,u_init=Vector{Float64}())
+prob2 = EnsembleProblem(prob,prob_func=prob_func,output_func=output_func,reduction=reduction,u_init=Vector{Float64}())
 sim = solve(prob2,Tsit5(),num_monte=100,batch_size=20)
 @test sim.converged == false
 
@@ -81,7 +81,7 @@ Random.seed!(100)
 reduction = function (u,batch,I)
   u+sum(batch),false
 end
-prob2 = MonteCarloProblem(prob,prob_func=prob_func,output_func=output_func,reduction=reduction,u_init=0.0)
+prob2 = EnsembleProblem(prob,prob_func=prob_func,output_func=output_func,reduction=reduction,u_init=0.0)
 sim2 = solve(prob2,Tsit5(),num_monte=100,batch_size=20)
 @test sim2.converged == false
 @test mean(sim.u) ≈ sim2.u/100
@@ -90,6 +90,6 @@ struct SomeUserType end
 output_func = function (sol,i)
     (SomeUserType(),false)
 end
-prob2 = MonteCarloProblem(prob,prob_func=prob_func,output_func=output_func)
+prob2 = EnsembleProblem(prob,prob_func=prob_func,output_func=output_func)
 sim2 = solve(prob2,Tsit5(),num_monte=2)
 @test !sim2.converged && typeof(sim2.u) == Vector{SomeUserType}

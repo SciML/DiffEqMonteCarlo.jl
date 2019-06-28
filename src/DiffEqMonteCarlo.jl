@@ -1,12 +1,12 @@
 module DiffEqMonteCarlo
 
 using DiffEqBase, RecursiveArrayTools, StaticArrays, Distributed, Statistics
-import DiffEqBase: MonteCarloSummary
+import DiffEqBase: EnsembleSummary
 
 include("solve.jl")
 include("analysis.jl")
 
-export MonteThreads, MonteDistributed, MonteSplitThreads, MonteSerial
+export EnsembleThreads, EnsembleDistributed, EnsembleSplitThreads, EnsembleSerial
 
 export get_timestep, get_timepoint, apply_timestep, apply_timepoint,
        componentwise_vectors_timestep, componentwise_vectors_timepoint

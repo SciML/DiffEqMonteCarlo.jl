@@ -1,8 +1,8 @@
-abstract type BasicMonteCarloAlgorithm <: DiffEqBase.MonteCarloAlgorithm end
-struct MonteThreads <: BasicMonteCarloAlgorithm end
-struct MonteDistributed <: BasicMonteCarloAlgorithm end
-struct MonteSplitThreads <: BasicMonteCarloAlgorithm end
-struct MonteSerial <: BasicMonteCarloAlgorithm end
+abstract type BasicEnsembleAlgorithm <: DiffEqBase.EnsembleAlgorithm end
+struct EnsembleThreads <: BasicEnsembleAlgorithm end
+struct EnsembleDistributed <: BasicEnsembleAlgorithm end
+struct EnsembleSplitThreads <: BasicEnsembleAlgorithm end
+struct EnsembleSerial <: BasicEnsembleAlgorithm end
 
 #=
 if (kwargs[:parallel_type] == != :none && kwargs[:parallel_type] == != :threads)
@@ -13,39 +13,39 @@ end
 elapsed_time = @elapsed u = DArray((num_monte,)) do I
     solve_batch(prob,alg,kwargs[:parallel_type] ==,I[1],pmap_batch_size,kwargs...)
 end
-return MonteCarloSolution(u,elapsed_time,false)
+return EnsembleSolution(u,elapsed_time,false)
 =#
 
-function DiffEqBase.__solve(prob::DiffEqBase.AbstractMonteCarloProblem,
+function DiffEqBase.__solve(prob::DiffEqBase.AbstractEnsembleProblem,
                             alg::Union{DiffEqBase.DEAlgorithm,Nothing};
                             kwargs...)
-    if alg isa DiffEqBase.MonteCarloAlgorithm
-      @error "You forgot to pass a DE solver algorithm! Only a MonteCarloAlgorithm has been supplied. Exiting"
+    if alg isa DiffEqBase.EnsembleAlgorithm
+      @error "You forgot to pass a DE solver algorithm! Only a EnsembleAlgorithm has been supplied. Exiting"
     end
     if :parallel_type ∈ keys(kwargs)
       if kwargs[:parallel_type] == :none
-        montealg = MonteSerial()
+        ensemblealg = EnsembleSerial()
       elseif kwargs[:parallel_type] == :pmap || kwargs[:parallel_type] == :parfor
-        montealg = MonteDistributed()
+        ensemblealg = EnsembleDistributed()
       elseif kwargs[:parallel_type] == :threads
-        montealg = MonteThreads()
+        ensemblealg = EnsembleThreads()
       elseif kwargs[:parallel_type] == :split_threads
-        montealg = MonteSplitThreads()
+        ensemblealg = EnsembleSplitThreads()
       else
         @error "parallel_type value not recognized"
       end
     else
-      montealg = MonteSerial()
+      ensemblealg = EnsembleSerial()
     end
     if :parallel_type ∈ keys(kwargs)
       @warn "parallel_type has been deprecated. Please refer to the docs for the new dispatch-based system."
     end
-    DiffEqBase.__solve(prob,alg,montealg;kwargs...)
+    DiffEqBase.__solve(prob,alg,ensemblealg;kwargs...)
 end
 
-function DiffEqBase.__solve(prob::DiffEqBase.AbstractMonteCarloProblem,
+function DiffEqBase.__solve(prob::DiffEqBase.AbstractEnsembleProblem,
                  alg::Union{DiffEqBase.DEAlgorithm,Nothing},
-                 montealg::BasicMonteCarloAlgorithm;
+                 ensemblealg::BasicEnsembleAlgorithm;
                  num_monte, batch_size = num_monte,
                  pmap_batch_size = batch_size÷100 > 0 ? batch_size÷100 : 1, kwargs...)
 
@@ -60,7 +60,7 @@ function DiffEqBase.__solve(prob::DiffEqBase.AbstractMonteCarloProblem,
     else
       I = (batch_size*(i-1)+1):batch_size*i
     end
-    batch_data = solve_batch(prob,alg,montealg,I,pmap_batch_size,kwargs...)
+    batch_data = solve_batch(prob,alg,ensemblealg,I,pmap_batch_size,kwargs...)
     u,converged = prob.reduction(u,batch_data,I)
     converged && break
   end
@@ -69,7 +69,7 @@ function DiffEqBase.__solve(prob::DiffEqBase.AbstractMonteCarloProblem,
   else
     _u = u
   end
-  return MonteCarloSolution(_u,elapsed_time,converged)
+  return EnsembleSolution(_u,elapsed_time,converged)
 end
 
 function batch_func(i,prob,alg,I,kwargs...)
@@ -99,7 +99,7 @@ function batch_func(i,prob,alg,I,kwargs...)
   _x[1]
 end
 
-function solve_batch(prob,alg,::MonteDistributed,I,pmap_batch_size,kwargs...)
+function solve_batch(prob,alg,::EnsembleDistributed,I,pmap_batch_size,kwargs...)
   wp=CachingPool(workers())
   batch_data = let
     pmap(wp,I,batch_size=pmap_batch_size) do i
@@ -109,7 +109,7 @@ function solve_batch(prob,alg,::MonteDistributed,I,pmap_batch_size,kwargs...)
   _batch_data = convert(Array{typeof(batch_data[1])},batch_data)
 end
 
-function solve_batch(prob,alg,::MonteSerial,I,pmap_batch_size,kwargs...)
+function solve_batch(prob,alg,::EnsembleSerial,I,pmap_batch_size,kwargs...)
   batch_data = let
     map(I) do i
       batch_func(i,prob,alg,I,kwargs...)
@@ -118,7 +118,7 @@ function solve_batch(prob,alg,::MonteSerial,I,pmap_batch_size,kwargs...)
   _batch_data = convert(Array{typeof(batch_data[1])},batch_data)
 end
 
-function solve_batch(prob,alg,::MonteThreads,I,pmap_batch_size,kwargs...)
+function solve_batch(prob,alg,::EnsembleThreads,I,pmap_batch_size,kwargs...)
   batch_data = Vector{Any}(undef,length(I))
   let
     Threads.@threads for batch_idx in axes(batch_data, 1)
@@ -152,7 +152,7 @@ function solve_batch(prob,alg,::MonteThreads,I,pmap_batch_size,kwargs...)
   _batch_data = convert(Array{typeof(batch_data[1])},batch_data)
 end
 
-function solve_batch(prob,alg,::MonteSplitThreads,I,pmap_batch_size,kwargs...)
+function solve_batch(prob,alg,::EnsembleSplitThreads,I,pmap_batch_size,kwargs...)
   wp=CachingPool(workers())
   batch_data = let
     pmap(wp,1:nprocs(),batch_size=pmap_batch_size) do i

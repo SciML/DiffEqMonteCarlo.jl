@@ -6,7 +6,7 @@ using DiffEqProblemLibrary.SDEProblemLibrary: importsdeproblems; importsdeproble
 import DiffEqProblemLibrary.SDEProblemLibrary: prob_sde_linear, prob_sde_2Dlinear
 
 prob = prob_sde_linear
-prob2 = MonteCarloProblem(prob)
+prob2 = EnsembleProblem(prob)
 sim = solve(prob2,SRIW1(),dt=1//2^(3),num_monte=10,adaptive=false)
 
 m = timestep_mean(sim,3)
@@ -24,7 +24,7 @@ vecarr = timeseries_steps_mean(sim)
 vecarr = timeseries_steps_median(sim)
 vecarr = timeseries_steps_quantile(sim,0.5)
 m_series,v_series = timeseries_steps_meanvar(sim)
-summ = MonteCarloSummary(sim)
+summ = EnsembleSummary(sim)
 
 m4,v4 = m_series[3],v_series[3]
 covar_mat = timeseries_steps_meancov(sim)[3,3]
@@ -54,7 +54,7 @@ m_series = timeseries_point_mean(sim,0:1//2^(3):1)
 m_series = timeseries_point_median(sim,0:1//2^(3):1)
 m_series = timeseries_point_quantile(sim,0.5,0:1//2^(3):1)
 m_series,v_series = timeseries_point_meanvar(sim,0:1//2^(3):1)
-summ = MonteCarloSummary(sim,0:1//2^(3):1)
+summ = EnsembleSummary(sim,0:1//2^(3):1)
 m5,v5 = m_series[5],v_series[5]
 @test m ≈ m5
 @test v ≈ v5
@@ -64,7 +64,7 @@ m6,m7,v6 = timeseries_point_meancov(sim,0:1//2^(3):1,0:1//2^(3):1)[5,5]
 @test v ≈ v6
 
 prob = prob_sde_2Dlinear
-prob2 = MonteCarloProblem(prob)
+prob2 = EnsembleProblem(prob)
 sim = solve(prob2,SRIW1(),dt=1//2^(3),num_monte=10,adaptive=false)
 
 m = timestep_mean(sim,3)
@@ -82,7 +82,7 @@ vecarr = timeseries_steps_mean(sim)
 vecarr = timeseries_steps_median(sim)
 vecarr = timeseries_steps_quantile(sim,0.5)
 m_series,v_series = timeseries_steps_meanvar(sim)
-summ = MonteCarloSummary(sim)
+summ = EnsembleSummary(sim)
 
 m4,v4 = m_series[3],v_series[3]
 covar_mat = timeseries_steps_meancov(sim)[3,3]
@@ -112,7 +112,7 @@ m_series = timeseries_point_mean(sim,0:1//2^(3):1)
 m_series = timeseries_point_median(sim,0:1//2^(3):1)
 m_series = timeseries_point_quantile(sim,0.5,0:1//2^(3):1)
 m_series,v_series = timeseries_point_meanvar(sim,0:1//2^(3):1)
-summ = MonteCarloSummary(sim,0:1//2^(3):1)
+summ = EnsembleSummary(sim,0:1//2^(3):1)
 m5,v5 = m_series[5],v_series[5]
 @test m ≈ m5
 @test v ≈ v5

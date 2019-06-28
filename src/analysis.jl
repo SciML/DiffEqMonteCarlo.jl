@@ -99,7 +99,7 @@ timepoint_meancov(sim,t1,t2) = componentwise_meancov(get_timepoint(sim,t1),get_t
 timepoint_meancor(sim,t1,t2) = componentwise_meancor(get_timepoint(sim,t1),get_timepoint(sim,t2))
 timepoint_weighted_meancov(sim,W,t1,t2) = componentwise_weighted_meancov(get_timepoint(sim,t1),get_timepoint(sim,t2),W)
 
-function MonteCarloSummary(sim::DiffEqBase.AbstractMonteCarloSolution{T,N},
+function EnsembleSummary(sim::DiffEqBase.AbstractEnsembleSolution{T,N},
                                 t=sim[1].t;quantiles=[0.05,0.95]) where {T,N}
   if typeof(sim[1]) <: DiffEqBase.DESolution
     m,v = timeseries_point_meanvar(sim,t)
@@ -112,7 +112,7 @@ function MonteCarloSummary(sim::DiffEqBase.AbstractMonteCarloSolution{T,N},
   end
 
   num_monte = length(sim)
-  MonteCarloSummary{T,N,typeof(t),typeof(m),typeof(v),typeof(qlow),typeof(qhigh)}(t,m,v,qlow,qhigh,num_monte,sim.elapsedTime,sim.converged)
+  EnsembleSummary{T,N,typeof(t),typeof(m),typeof(v),typeof(qlow),typeof(qhigh)}(t,m,v,qlow,qhigh,num_monte,sim.elapsedTime,sim.converged)
 end
 
 function timeseries_point_mean(sim,ts)
