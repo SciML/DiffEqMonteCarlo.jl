@@ -11,8 +11,9 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [compat]
-julia = "1"
 DiffEqBase = ">= 5"
+StaticArrays = "0.12"
+julia = "1"
 
 [extras]
 DiffEqProblemLibrary = "a077e3f3-b75c-5d7f-a0c6-6bc4c8ec64a9"
@@ -21,4 +22,4 @@ StochasticDiffEq = "789caeaf-c7a9-5a7d-9973-96adeb23e2a0"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["DiffEqProblemLibrary","OrdinaryDiffEq","StochasticDiffEq","Test"]
+test = ["DiffEqProblemLibrary", "OrdinaryDiffEq", "StochasticDiffEq", "Test"]
