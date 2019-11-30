@@ -1,7 +1,7 @@
 name = "DiffEqMonteCarlo"
 uuid = "78ddff82-25fc-5f2b-89aa-309469cbf16f"
 authors = ["Chris Rackauckas <accounts@chrisrackauckas.com>"]
-version = "v0.15.1"
+version = "v1.0.0"
 
 [deps]
 DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
